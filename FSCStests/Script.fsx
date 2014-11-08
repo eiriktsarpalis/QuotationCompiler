@@ -1,4 +1,5 @@
 ﻿#r "../packages/FSharp.Compiler.Service.0.0.76/lib/net45/FSharp.Compiler.Service.dll"
+#r "bin/Debug/FSCStests.exe"
 
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Microsoft.FSharp.Compiler.Ast
@@ -17,11 +18,7 @@ module Ast =
 let tree = Ast.ofSourceString """
 module Foo.Bar
 
-let add(x,y) = x + y
-
-let x = 2
-
-add(1,x + 1)
+let func () = x + y
 """
 
 let tree' = Ast.ofSourceString ""

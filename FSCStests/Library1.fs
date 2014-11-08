@@ -4,6 +4,8 @@ open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Microsoft.FSharp.Compiler.SimpleSourceCodeServices
 
+open quotationTransformer
+
 module Ast =
 
     let ofSourceString (source : string) = 
@@ -20,10 +22,15 @@ module Ast =
         sscs.Compile(ast, "testAssembly", outputDir + "/testAssembly.dll", dependencies)
 
 
-let tree = Ast.ofSourceString """
-module Foo.Bar
+let ast = quotationToParsedInput <@ fun x -> x + 1 @>
 
-let f = () ; fun x -> x + 1
-"""
-
-let errors = Ast.compile "/Users/eirik/Desktop" [] [tree.Value]
+let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
+//
+//
+//let tree = Ast.ofSourceString """
+//module Foo.Bar
+//
+//let f = typeof<int list>
+//"""
+//
+//let errors = Ast.compile "/Users/eirik/Desktop" [] [tree.Value]
