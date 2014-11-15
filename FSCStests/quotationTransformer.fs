@@ -106,6 +106,40 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let bodyAst = exprToAst body
         SynExpr.Lambda(false, false, typedPat, bodyAst, range0)
 
+    | LetRecursive(bindings, body) ->
+        let mkBinding (v : Var, bind : Expr) =
+            let vType = sysTypeToSynType v.Type
+            let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range0)], []), None, None, SynConstructorArgs.Pats [], None, range0)
+            let typedPat = SynPat.Typed(untypedPat, vType, range0)
+            let synBind = exprToAst bind
+            let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
+            SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range0, SequencePointInfoForBinding.SequencePointAtBinding range0)
+
+        let bindings = List.map mkBinding bindings
+        let synBody = exprToAst body
+        SynExpr.LetOrUse(true, false, bindings, synBody, range0)
+
+    | Let(v, bind, body) ->
+        let vType = sysTypeToSynType v.Type
+        let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range0)], []), None, None, SynConstructorArgs.Pats [], None, range0)
+        let typedPat = SynPat.Typed(untypedPat, vType, range0)
+        let synBind = exprToAst bind
+        let synBody = exprToAst body
+        let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
+        let synBinding = SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range0, SequencePointInfoForBinding.SequencePointAtBinding range0)
+        SynExpr.LetOrUse(false, false, [synBinding], synBody, range0)
+
+    | Application(left, right) ->
+        let synLeft = exprToAst left
+        let synRight = exprToAst right
+        SynExpr.App(ExprAtomicFlag.NonAtomic, false, synLeft, synRight, range0)
+
+    | IfThenElse(cond, a, b) ->
+        let synCond = exprToAst cond
+        let synA = exprToAst a
+        let synB = exprToAst b
+        SynExpr.IfThenElse(synCond, synA, Some synB, SequencePointInfoForBinding.SequencePointAtBinding range0, false, range0, range0) 
+
     | Call(None, methodInfo, args) ->
         let synArgs = List.map exprToAst args |> List.toArray
         let groupings = defaultArg (tryGetCurriedFunctionGroupings methodInfo) [synArgs.Length]

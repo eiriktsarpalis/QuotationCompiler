@@ -3,17 +3,29 @@
 
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Microsoft.FSharp.Compiler.Ast
-
-open QuotationTransformer
 open TestUtils
 
-let ast = quotationToParsedInput <@ fun (x : float) -> round (x * x + 1.) @>
+open QuotationTransformer
+
+let ast : ParsedInput = 
+    quotationToParsedInput 
+        <@ 
+            let rec fib n =
+                if n <= 1 then n
+                else
+                    fib(n-1) + fib(n-2)
+
+            fib
+        @>
 
 let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
 
 #r "/Users/eirik/Desktop/testAssembly.dll"
 
-Test.compiledQuotation () 1.3
+Test.compiledQuotation () 10
+
+
+
 
 let tree = Ast.ofSourceString """
 module Foo
