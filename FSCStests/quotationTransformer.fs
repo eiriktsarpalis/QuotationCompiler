@@ -1,4 +1,4 @@
-﻿module quotationTransformer
+﻿module QuotationTransformer
 
 open System
 open System.Reflection
@@ -13,7 +13,7 @@ open Microsoft.FSharp.Quotations.ExprShape
 open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.Range
 
-let inline notImpl<'T> : 'T = raise <| new NotImplementedException()
+let inline notImpl<'T> msg : 'T = raise <| new NotImplementedException(msg)
 
 type TransformerState =
     {
@@ -27,11 +27,6 @@ let updateDependencies (state : TransformerState) (t : Type) =
     match state.Dependencies.TryFind key with
     | Some _ -> state
     | None -> { state with Dependencies = Map.add key t.Assembly state.Dependencies }
-
-let tryGetCurriedFunctionGroupings (m : MethodInfo) =
-    match Seq.toArray <| m.GetCustomAttributes<CompilationArgumentCountsAttribute> () with
-    | null | [||] -> None
-    | attrs -> Some(attrs.[0].Counts |> Seq.toList)
 
 let rec sysTypeToSynType (t : System.Type) : SynType =
     if FSharpType.IsTuple t then
@@ -61,13 +56,44 @@ let rec sysTypeToSynType (t : System.Type) : SynType =
 
         let liwd = LongIdentWithDots(longIdent, [range0])
         SynType.LongIdent liwd
+
+type MemberInfo with
+    member m.TryGetCustomAttribute<'Attr when 'Attr :> System.Attribute> () =
+        let attrs = m.GetCustomAttributes<'Attr> ()
+        if Seq.isEmpty attrs then None
+        else
+            Some(Seq.head attrs)
+
+let tryGetCurriedFunctionGroupings (m : MethodInfo) =
+    match m.TryGetCustomAttribute<CompilationArgumentCountsAttribute> () with
+    | None -> None
+    | Some a -> Some(a.Counts |> Seq.toList)
+
+let sysMethodToSynMethod (m : MethodInfo) =
+    let fsharpFunctionName =
+        match m.TryGetCustomAttribute<CompilationSourceNameAttribute> () with
+        | None -> m.Name
+        | Some a -> a.SourceName
+
+    let longIdent =
+        [
+            for id in m.DeclaringType.FullName.Split('`').[0].Split([|'.';'+'|]) do
+                yield new Ident(id, range0)
+
+            yield new Ident(fsharpFunctionName, range0)
+        ]
+
+    let liwd = LongIdentWithDots(longIdent, [range0])
+    SynExpr.LongIdent(false, liwd, None, range0)
+    
         
 
 let rec exprToAst (expr : Expr) : SynExpr =
     match expr with
     | Value(:? int as i, t) when t = typeof<int> -> SynExpr.Const(SynConst.Int32 i, range0)
+    | Value(:? float as i, t) when t = typeof<float> -> SynExpr.Const(SynConst.Double i, range0)
     | Value(:? string as s, t) when t = typeof<string> -> SynExpr.Const(SynConst.String(s, range0), range0)
-    | Value _ -> notImpl
+    | Value (_,t) -> notImpl (sprintf "Value %O" t)
     | Var v ->
         let ident = new Ident(v.Name, range0)
         SynExpr.Ident ident
@@ -93,11 +119,11 @@ let rec exprToAst (expr : Expr) : SynExpr =
             let funcExpr2 = SynExpr.App(ExprAtomicFlag.NonAtomic, false, funcExpr, args, range0)
             funcExpr2, i + grouping
 
-        let synMethod = SynExpr.Ident(new Ident(methodInfo.Name, range0))
+        let synMethod = sysMethodToSynMethod methodInfo
         let callExpr,_ = List.fold foldApp (synMethod, 0) groupings
         callExpr
 
-    | _ -> notImpl
+    | e -> notImpl (sprintf "%O" e)
 
 
 let synExprToLetBinding (expr : SynExpr) =

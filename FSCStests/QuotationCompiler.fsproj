@@ -49,8 +49,8 @@
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
-    <Compile Include="quotationTransformer.fs" />
-    <Compile Include="Library1.fs" />
+    <Compile Include="QuotationTransformer.fs" />
+    <Compile Include="TestUtils.fs" />
     <None Include="Script.fsx" />
     <Content Include="packages.config" />
     <Content Include="app.config" />

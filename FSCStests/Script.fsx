@@ -4,21 +4,19 @@
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Microsoft.FSharp.Compiler.Ast
 
-open quotationTransformer
-open QuotationTests
+open QuotationTransformer
+open TestUtils
 
-let ast = quotationToParsedInput <@ fun x -> x + 41 @>
+let ast = quotationToParsedInput <@ fun (x : float) -> round (x * x + 1.) @>
 
 let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
 
 #r "/Users/eirik/Desktop/testAssembly.dll"
 
-Test.compiledQuotation () 1
+Test.compiledQuotation () 1.3
 
-//let tree = Ast.ofSourceString """
-//module Foo
-//
-//let f () = fun x -> Operators.(+) (1,2)
-//"""
-//
-//let tree' = Ast.ofSourceString ""
+let tree = Ast.ofSourceString """
+module Foo
+
+let f () = fun x -> round 3.14159
+"""

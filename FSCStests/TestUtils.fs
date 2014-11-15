@@ -1,10 +1,10 @@
-﻿module QuotationTests
+﻿module TestUtils
     
 open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Microsoft.FSharp.Compiler.SimpleSourceCodeServices
 
-open quotationTransformer
+open QuotationTransformer
 
 module Ast =
 
