@@ -28,6 +28,11 @@ let updateDependencies (state : TransformerState) (t : Type) =
     | Some _ -> state
     | None -> { state with Dependencies = Map.add key t.Assembly state.Dependencies }
 
+let tryGetCurriedFunctionGroupings (m : MethodInfo) =
+    match Seq.toArray <| m.GetCustomAttributes<CompilationArgumentCountsAttribute> () with
+    | null | [||] -> None
+    | attrs -> Some(attrs.[0].Counts |> Seq.toList)
+
 let rec sysTypeToSynType (t : System.Type) : SynType =
     if FSharpType.IsTuple t then
         let telems = 
@@ -76,11 +81,21 @@ let rec exprToAst (expr : Expr) : SynExpr =
         SynExpr.Lambda(false, false, typedPat, bodyAst, range0)
 
     | Call(None, methodInfo, args) ->
-        let synArgs = List.map exprToAst args
+        let synArgs = List.map exprToAst args |> List.toArray
+        let groupings = defaultArg (tryGetCurriedFunctionGroupings methodInfo) [synArgs.Length]
         // TODO : type app for generic methods
-        let parenArgs = SynExpr.Paren(SynExpr.Tuple(synArgs, [], range0), range0, None, range0)
-        let synMethod = new Ident(methodInfo.Name, range0)
-        SynExpr.App(ExprAtomicFlag.NonAtomic, false, SynExpr.Ident synMethod, parenArgs, range0)
+        let rec foldApp (funcExpr : SynExpr, i : int) (grouping : int) =
+            let args =
+                match grouping with
+                | 1 -> synArgs.[i]
+                | _ -> SynExpr.Paren(SynExpr.Tuple(Array.toList <| synArgs.[i .. i + grouping], [], range0), range0, None, range0)
+
+            let funcExpr2 = SynExpr.App(ExprAtomicFlag.NonAtomic, false, funcExpr, args, range0)
+            funcExpr2, i + grouping
+
+        let synMethod = SynExpr.Ident(new Ident(methodInfo.Name, range0))
+        let callExpr,_ = List.fold foldApp (synMethod, 0) groupings
+        callExpr
 
     | _ -> notImpl
 

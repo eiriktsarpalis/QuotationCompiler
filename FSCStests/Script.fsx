@@ -1,27 +1,24 @@
 ﻿#r "../packages/FSharp.Compiler.Service.0.0.76/lib/net45/FSharp.Compiler.Service.dll"
-#r "bin/Debug/FSCStests.exe"
+#r "bin/Debug/QuotationCompiler.dll"
 
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Microsoft.FSharp.Compiler.Ast
 
-module Ast =
-    let private checker = FSharpChecker.Create()
-    let ofSourceString (source : string) = 
-        Async.RunSynchronously(async {
-            let fileName = "/mock.fs"
-            let! options = checker.GetProjectOptionsFromScript(fileName, "")
-            let! parsed = checker.ParseFileInProject(fileName, source, options)
-            return parsed.ParseTree
-        })
+open quotationTransformer
+open QuotationTests
 
+let ast = quotationToParsedInput <@ fun x -> x + 41 @>
 
-let tree = Ast.ofSourceString """
-module Foo.Bar
+let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
 
-let func () = x + y
-"""
+#r "/Users/eirik/Desktop/testAssembly.dll"
 
-let tree' = Ast.ofSourceString ""
+Test.compiledQuotation () 1
 
-
-<@ 2 @>
+//let tree = Ast.ofSourceString """
+//module Foo
+//
+//let f () = fun x -> Operators.(+) (1,2)
+//"""
+//
+//let tree' = Ast.ofSourceString ""
