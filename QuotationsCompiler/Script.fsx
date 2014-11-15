@@ -3,12 +3,11 @@
 
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Microsoft.FSharp.Compiler.Ast
-open TestUtils
 
-open QuotationTransformer
+open QuotationsCompiler
 
 let ast : ParsedInput = 
-    quotationToParsedInput 
+    Transformer.quotationToParsedInput 
         <@ 
             let rec fib n =
                 if n <= 1 then n

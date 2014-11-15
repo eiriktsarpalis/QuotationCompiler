@@ -1,4 +1,4 @@
-﻿module QuotationTransformer
+﻿module QuotationsCompiler.Transformer
 
 open System
 open System.Reflection
