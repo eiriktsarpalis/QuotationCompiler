@@ -315,8 +315,8 @@ let rec exprToAst (expr : Expr) : SynExpr =
             let ident = sysMemberToSynMember range propertyInfo.DeclaringType
             SynExpr.DotIndexedGet(ident, [synIndexer], range0, range0)
         | Some inst ->
-            let sysInst = exprToAst inst
-            SynExpr.DotIndexedGet(sysInst, [synIndexer], range, range)
+            let synInst = exprToAst inst
+            SynExpr.DotIndexedGet(synInst, [synIndexer], range, range)
 
     | PropertySet(instance, propertyInfo, [], value) ->
         let synValue = exprToAst value
@@ -327,6 +327,23 @@ let rec exprToAst (expr : Expr) : SynExpr =
         | Some inst ->
             let synInst = exprToAst inst
             SynExpr.DotSet(synInst, LongIdentWithDots([mkIdent range propertyInfo.Name], []), synValue, range)
+
+    | PropertySet(instance, propertyInfo, indexers, value) ->
+        let synValue = exprToAst value
+        let synIndexer = 
+            match List.map exprToAst indexers with
+            | [one] -> SynIndexerArg.One(one)
+            | synIdx -> SynIndexerArg.One(SynExpr.Tuple(synIdx, [range], range))
+
+        match instance with
+        | None ->
+            let ident = sysMemberToSynMember range propertyInfo.DeclaringType
+            SynExpr.DotIndexedSet(ident, [synIndexer], synValue, range, range, range)
+
+        | Some inst ->
+            let synInst = exprToAst inst
+            SynExpr.DotIndexedSet(synInst, [synIndexer], synValue, range, range, range)
+        
 
     | AddressOf e -> notImpl expr
     | AddressSet(e,e') -> notImpl expr
