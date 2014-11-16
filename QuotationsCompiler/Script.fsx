@@ -9,9 +9,10 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            let x = Map.ofList [(1,"asd")]
+            let x = ref 32
 
-            x.[1]
+            x.contents <- 12
+            x.Value
         @>
 
 let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
@@ -23,7 +24,9 @@ Test.compiledQuotation ()
 let tree = Ast.ofSourceString """
 module Foo
 
-let f () = x.[1] <- 2
+let f () =
+    let x = ref (ref 42)
+    (!x).current <- 12
 """
 type Foo() =
     member __.Item(i,j) = i + j

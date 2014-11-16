@@ -318,7 +318,15 @@ let rec exprToAst (expr : Expr) : SynExpr =
             let sysInst = exprToAst inst
             SynExpr.DotIndexedGet(sysInst, [synIndexer], range, range)
 
-    | PropertySet(inst, propertyInfo, values, v) -> notImpl expr
+    | PropertySet(instance, propertyInfo, [], value) ->
+        let synValue = exprToAst value
+        match instance with
+        | None ->
+            let ident = LongIdentWithDots(getMemberPath range propertyInfo, [])
+            SynExpr.LongIdentSet(ident, synValue, range)
+        | Some inst ->
+            let synInst = exprToAst inst
+            SynExpr.DotSet(synInst, LongIdentWithDots([mkIdent range propertyInfo.Name], []), synValue, range)
 
     | AddressOf e -> notImpl expr
     | AddressSet(e,e') -> notImpl expr
