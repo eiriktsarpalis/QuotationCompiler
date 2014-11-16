@@ -354,11 +354,17 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synVar = LongIdentWithDots([mkIdent range v.Name], [])
         SynExpr.LongIdentSet(synVar, synValue, range)
 
+    | ForIntegerRangeLoop(var, startExpr, endExpr, body) ->
+        let varIdent = mkIdent range var.Name
+        let synStartExpr = exprToAst startExpr
+        let synEndExpr = exprToAst endExpr
+        let synBody = exprToAst body
+        SynExpr.For(SequencePointAtForLoop range, varIdent, synStartExpr, true, synEndExpr, synBody, range)
+
     | AddressOf e -> notImpl expr
     | AddressSet(e,e') -> notImpl expr
     | FieldGet(inst, fieldInfo) -> notImpl expr
     | FieldSet(inst, fieldInfo, value) -> notImpl expr
-    | ForIntegerRangeLoop(v, e, e', e'') -> notImpl expr
 
     | NewArray(t, e) -> notImpl expr
     | DefaultValue(t) -> notImpl expr

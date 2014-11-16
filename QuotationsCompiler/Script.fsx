@@ -9,10 +9,12 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            let mutable x = 0
-            while x < 10 do
+            for i = 0 to 10 do
                 System.Console.WriteLine "test"
-                x <- x + 1
+//            let mutable x = 0
+//            while x < 10 do
+//                System.Console.WriteLine "test"
+//                x <- x + 1
         @>
 
 let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
@@ -25,6 +27,6 @@ let tree = Ast.ofSourceString """
 module Foo
 
 let f () =
-    let x = ref (ref 42)
-    (!x).current <- 12
+    for i = 0 to 10 do
+        printfn "%d" i
 """
