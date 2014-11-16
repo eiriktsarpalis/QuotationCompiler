@@ -14,7 +14,7 @@ open Microsoft.FSharp.Quotations.ExprShape
 open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.Range
 
-let inline notImpl<'T> msg : 'T = raise <| new NotImplementedException(msg)
+let inline notImpl<'T> e : 'T = raise <| new NotImplementedException(sprintf "%O" e)
 
 type TransformerState =
     {
@@ -305,9 +305,22 @@ let rec exprToAst (expr : Expr) : SynExpr =
             let liwd = mkLongIdent range [mkIdent range propertyInfo.Name]
             SynExpr.DotGet(sysInst, range, liwd, range)
 
+    | AddressOf e -> notImpl expr
+    | AddressSet(e,e') -> notImpl expr
+    | FieldGet(inst, fieldInfo) -> notImpl expr
+    | FieldSet(inst, fieldInfo, value) -> notImpl expr
+    | ForIntegerRangeLoop(v, e, e', e'') -> notImpl expr
+    | WhileLoop(c,b) -> notImpl expr
+    | NewArray(t, e) -> notImpl expr
+    | DefaultValue(t) -> notImpl expr
+    | NewDelegate(t, vars, body) -> notImpl expr
+    | NewRecord(t, exprs) -> notImpl expr
+    | PropertySet(inst, propertyInfo, values, v) -> notImpl expr
+    | TupleGet(inst, idx) -> notImpl expr
+    | TypeTest(expr, t) -> notImpl expr
+    | VarSet(v, expr) -> notImpl expr
     | Quote e -> raise <| new NotSupportedException("nested quotations not supported")
-    | e -> notImpl (sprintf "%O" e)
-
+    | _ -> notImpl expr
 
 let synExprToLetBinding (expr : SynExpr) =
     let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
