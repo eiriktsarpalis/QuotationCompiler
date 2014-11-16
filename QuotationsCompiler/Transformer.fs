@@ -235,6 +235,11 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synType = sysTypeToSynType range t
         SynExpr.Upcast(synExpr, synType, range)
 
+    | TypeTest(expr, t) ->
+        let synExpr = exprToAst expr
+        let synTy = sysTypeToSynType range t
+        SynExpr.TypeTest(synExpr, synTy, range)
+
     | NewObject(ctorInfo, args) ->
         let synType = sysTypeToSynType range ctorInfo.DeclaringType
         let synArgs = List.map exprToAst args
@@ -391,7 +396,6 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | DefaultValue(t) -> notImpl expr
     | NewDelegate(t, vars, body) -> notImpl expr
     | TupleGet(inst, idx) -> notImpl expr
-    | TypeTest(expr, t) -> notImpl expr
     | Quote e -> raise <| new NotSupportedException("nested quotations not supported")
     | _ -> notImpl expr
 
