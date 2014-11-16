@@ -9,8 +9,7 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            for i = 0 to 10 do
-                System.Console.WriteLine "test"
+            { contents = 42 }
 //            let mutable x = 0
 //            while x < 10 do
 //                System.Console.WriteLine "test"
@@ -26,7 +25,5 @@ Test.compiledQuotation ()
 let tree = Ast.ofSourceString """
 module Foo
 
-let f () =
-    for i = 0 to 10 do
-        printfn "%d" i
+let f () = { contents = 32 ; c = "" }
 """

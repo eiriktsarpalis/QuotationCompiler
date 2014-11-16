@@ -245,6 +245,13 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synArgs = List.map exprToAst args
         SynExpr.Tuple(synArgs, [], range)
 
+    | NewRecord(ty, entries) ->
+        let synTy = sysTypeToSynType range ty
+        let fields = FSharpType.GetRecordFields(ty, BindingFlags.NonPublic ||| BindingFlags.Public) |> Array.toList
+        let synEntries = List.map exprToAst entries
+        let entries = (fields, synEntries) ||> List.map2 (fun f e -> (mkLongIdent range [mkIdent range f.Name], true), Some e, None)
+        SynExpr.Record(None, None, entries, range)
+
     | NewUnionCase(uci, args) ->
         let uciCtor = mkUciCtor range uci
         let synArgs = List.map exprToAst args
@@ -383,7 +390,6 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | NewArray(t, e) -> notImpl expr
     | DefaultValue(t) -> notImpl expr
     | NewDelegate(t, vars, body) -> notImpl expr
-    | NewRecord(t, exprs) -> notImpl expr
     | TupleGet(inst, idx) -> notImpl expr
     | TypeTest(expr, t) -> notImpl expr
     | Quote e -> raise <| new NotSupportedException("nested quotations not supported")
