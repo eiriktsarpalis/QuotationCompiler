@@ -99,6 +99,10 @@ let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
         let liwd = getMemberPath range t
         SynType.LongIdent liwd
 
+let mkVarPat range (v : Var) = 
+    let lident = [new Ident(v.Name, range)]
+    SynPat.LongIdent(LongIdentWithDots(lident, []), None, None, SynConstructorArgs.Pats [], None, range)
+
 let tryGetCurriedFunctionGroupings (m : MethodInfo) =
     match m.TryGetCustomAttribute<CompilationArgumentCountsAttribute> () with
     | None -> None
@@ -149,7 +153,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | LetRecursive(bindings, body) ->
         let mkBinding (v : Var, bind : Expr) =
             let vType = sysTypeToSynType range v.Type
-            let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range)], []), None, None, SynConstructorArgs.Pats [], None, range)
+            let untypedPat = mkVarPat range v
             let typedPat = SynPat.Typed(untypedPat, vType, range)
             let synBind = exprToAst bind
             let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
@@ -161,7 +165,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
 
     | Let(v, bind, body) ->
         let vType = sysTypeToSynType range v.Type
-        let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range)], []), None, None, SynConstructorArgs.Pats [], None, range)
+        let untypedPat = mkVarPat range v
         let typedPat = SynPat.Typed(untypedPat, vType, range)
         let synBind = exprToAst bind
         let synBody = exprToAst body
@@ -173,6 +177,23 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synLeft = exprToAst left
         let synRight = exprToAst right
         SynExpr.App(ExprAtomicFlag.NonAtomic, false, synLeft, synRight, range)
+
+    | Sequential(left, right) ->
+        let synLeft = exprToAst left
+        let synRight = exprToAst right
+        SynExpr.Sequential(SequencePointInfoForSeq.SequencePointsAtSeq, true, synLeft, synRight, range)
+
+    | TryWith(body, _, _, cv, cb) ->
+        let synBody = exprToAst body
+        let synPat = mkVarPat range cv
+        let synCatch = exprToAst cb
+        let synClause = SynMatchClause.Clause(synPat, None, synCatch, range, SequencePointInfoForTarget.SequencePointAtTarget)
+        SynExpr.TryWith(synBody, range, [synClause], range, range, SequencePointInfoForTry.SequencePointAtTry range, SequencePointInfoForWith.SequencePointAtWith range)
+
+    | TryFinally(body, finalizer) ->
+        let synBody = exprToAst body
+        let synFinalizer = exprToAst finalizer
+        SynExpr.TryFinally(synBody, synFinalizer, range, SequencePointInfoForTry.SequencePointAtTry range, SequencePointInfoForFinally.SequencePointAtFinally range)
 
     | IfThenElse(cond, a, b) ->
         let synCond = exprToAst cond
@@ -212,6 +233,13 @@ let rec exprToAst (expr : Expr) : SynExpr =
                 let liwd = LongIdentWithDots([new Ident(methodInfo.Name, range)], [range])
                 SynExpr.DotGet(synInst, range, liwd, range)
 
+        let synMethod =
+            if methodInfo.IsGenericMethod then
+                let margs = methodInfo.GetGenericArguments() |> Seq.map (sysTypeToSynType range) |> Seq.toList
+                SynExpr.TypeApp(synMethod, range, margs, [], None, range, range)
+            else
+                synMethod
+
         let callExpr,_ = List.fold foldApp (synMethod, 0) groupings
         callExpr
 
@@ -224,6 +252,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
             let liwd = LongIdentWithDots([new Ident(propertyInfo.Name, range)], [range])
             SynExpr.DotGet(sysInst, range, liwd, range)
 
+    | Quote e -> raise <| new NotSupportedException("nested quotations not supported")
     | e -> notImpl (sprintf "%O" e)
 
 
