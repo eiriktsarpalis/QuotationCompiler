@@ -9,11 +9,13 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            try
-                try 1 / 0 |> ignore ; 0 with e -> e.GetHashCode()
-            finally
-                System.Console.WriteLine "complete"
-//            let protect (f : int -> int) x = try f x |> Choice1Of2 with e -> Choice2Of2 e
+            let v = if System.IO.File.Exists "1" then None else Some 12
+
+            match v with
+            | Some 2 -> 2
+            | Some x -> x + 1
+            | None -> 0
+
 //
 //            protect (fun x -> 1 / x) 0
 //            let rec fib n =
@@ -39,7 +41,7 @@ op_Range 1 2
 let tree = Ast.ofSourceString """
 module Foo
 
-let f () = try 1 with e -> ()
+let f () = Some 42
 """
 
-<@ typeof<int> @>
+<@ Some 42 @>

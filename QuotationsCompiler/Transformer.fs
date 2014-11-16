@@ -47,11 +47,19 @@ type MemberInfo with
         else
             Some(Seq.head attrs)
 
+    member m.Assembly = match m with :? Type as t -> t.Assembly | _ -> m.DeclaringType.Assembly
+
 let private moduleSuffixRegex = new Regex(@"^(.*)Module$", RegexOptions.Compiled)
+let private fsharpPrefixRegex = new Regex(@"^FSharp(.*)`[0-9]+$", RegexOptions.Compiled)
 let getFSharpName (m : MemberInfo) =
     match m.TryGetCustomAttribute<CompilationSourceNameAttribute> () with
     | Some a -> a.SourceName
     | None ->
+
+    if m.Assembly = typeof<int option>.Assembly && fsharpPrefixRegex.IsMatch m.Name then
+        let rm = fsharpPrefixRegex.Match m.Name
+        rm.Groups.[1].Value
+    else
 
     match m, m.TryGetCustomAttribute<CompilationRepresentationAttribute> () with
     | :? Type as t, Some attr when attr.Flags.HasFlag CompilationRepresentationFlags.ModuleSuffix && FSharpType.IsModule t ->
@@ -59,9 +67,7 @@ let getFSharpName (m : MemberInfo) =
         if rm.Success then rm.Groups.[1].Value
         else
             m.Name
-    | _ -> m.Name
-        
-    
+    | _ -> m.Name.Split('`').[0]
 
 let getMemberPath range (m : MemberInfo) =
     let rec aux (m : MemberInfo) = seq {
@@ -72,8 +78,7 @@ let getMemberPath range (m : MemberInfo) =
         yield getFSharpName m
     }
 
-    let ids = aux m |> Seq.map (fun n -> new Ident(n, range)) |> Seq.toList
-    LongIdentWithDots(ids, [range])
+    aux m |> Seq.map (fun n -> new Ident(n, range)) |> Seq.toList
 
 let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
     if FSharpType.IsTuple t then
@@ -87,7 +92,7 @@ let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
         let dom, cod = FSharpType.GetFunctionElements t
         let synDom, synCod = sysTypeToSynType range dom, sysTypeToSynType range cod
         SynType.Fun(synDom, synCod, range)
-    elif t.IsGenericType then
+    elif t.IsGenericType && not t.IsGenericTypeDefinition then
         let synDef = t.GetGenericTypeDefinition() |> sysTypeToSynType range
         let synParams = t.GetGenericArguments() |> Seq.map (sysTypeToSynType range) |> Seq.toList
         SynType.App(synDef, None, synParams, [], None, (* isPostFix *) false, range)
@@ -96,8 +101,13 @@ let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
         let rk = t.GetArrayRank()
         SynType.Array(rk, synElem, range)
     else
-        let liwd = getMemberPath range t
+        let liwd = LongIdentWithDots(getMemberPath range t, [range])
         SynType.LongIdent liwd
+
+let mkUciIdent range (uci : UnionCaseInfo) =
+    let path = getMemberPath range uci.DeclaringType
+    LongIdentWithDots(path @ [new Ident(uci.Name, range)], [range])
+//    SynExpr.LongIdent(false, liwd, None, range)
 
 let mkVarPat range (v : Var) = 
     let lident = [new Ident(v.Name, range)]
@@ -109,7 +119,7 @@ let tryGetCurriedFunctionGroupings (m : MethodInfo) =
     | Some a -> Some(a.Counts |> Seq.toList)
 
 let sysMemberToSynMember range (m : MemberInfo) =
-    let liwd = getMemberPath range m
+    let liwd = LongIdentWithDots(getMemberPath range m, [range])
     SynExpr.LongIdent(false, liwd, None, range)
         
 
@@ -201,6 +211,11 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synB = exprToAst b
         SynExpr.IfThenElse(synCond, synA, Some synB, SequencePointInfoForBinding.SequencePointAtBinding range, false, range, range)
 
+    | Coerce(e, t) ->
+        let synExpr = exprToAst e
+        let synType = sysTypeToSynType range t
+        SynExpr.Upcast(synExpr, synType, range)
+
     | NewObject(ctorInfo, args) ->
         let synType = sysTypeToSynType range ctorInfo.DeclaringType
         let synArgs = List.map exprToAst args
@@ -210,6 +225,23 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | NewTuple(args) ->
         let synArgs = List.map exprToAst args
         SynExpr.Tuple(synArgs, [], range)
+
+    | NewUnionCase(uci, args) ->
+        let uciIdent = SynExpr.LongIdent(false, mkUciIdent range uci, None, range)
+        let synArgs = List.map exprToAst args
+        match synArgs with
+        | [] -> uciIdent
+        | [a] -> SynExpr.App(ExprAtomicFlag.Atomic, false, uciIdent, a, range)
+        | _ ->
+            let synParam = SynExpr.Tuple(synArgs, [], range)
+            SynExpr.App(ExprAtomicFlag.Atomic, false, uciIdent, synParam, range)
+
+    | UnionCaseTest(expr, uci) ->
+        let synExpr = exprToAst expr
+        let uciIdent = SynPat.LongIdent(mkUciIdent range uci, None, None, SynConstructorArgs.Pats [], None, range)
+        let clause0 = SynMatchClause.Clause(uciIdent, None, SynExpr.Const(SynConst.Bool true, range0), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
+        let clause1 = SynMatchClause.Clause(SynPat.Wild range0, None, SynExpr.Const(SynConst.Bool false, range0), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
+        SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [clause0 ; clause1], false, range)
 
     | Call(instance, methodInfo, args) ->
         let synArgs = List.map exprToAst args |> List.toArray
