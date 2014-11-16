@@ -9,9 +9,9 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            let protect (f : int -> int) x = try f x |> Choice1Of2 with e -> Choice2Of2 e
+            let x = Map.ofList [(1,"asd")]
 
-            protect (fun x -> 1 / x) 0
+            x.[1]
         @>
 
 let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
@@ -23,5 +23,11 @@ Test.compiledQuotation ()
 let tree = Ast.ofSourceString """
 module Foo
 
-let f () = Option<int>.Some 2
+let f () = x.[1] <- 2
 """
+type Foo() =
+    member __.Item(i,j) = i + j
+
+let f = new Foo()
+
+<@ f.[1,10] @>

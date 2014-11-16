@@ -95,7 +95,7 @@ let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
         let telems = 
             FSharpType.GetTupleElements t 
             |> Array.toList
-            |> List.map(fun et -> false, sysTypeToSynType range t)
+            |> List.map(fun et -> false, sysTypeToSynType range et)
 
         SynType.Tuple(telems, range)
     elif FSharpType.IsFunction t then
@@ -297,13 +297,28 @@ let rec exprToAst (expr : Expr) : SynExpr =
         callExpr
 
     | PropertyGet(instance, propertyInfo, []) ->
-        // TODO : properties with arguments
         match instance with
         | None -> sysMemberToSynMember range propertyInfo
         | Some inst ->
             let sysInst = exprToAst inst
             let liwd = mkLongIdent range [mkIdent range propertyInfo.Name]
             SynExpr.DotGet(sysInst, range, liwd, range)
+
+    | PropertyGet(instance, propertyInfo, indexers) ->
+        let synIndexer = 
+            match List.map exprToAst indexers with
+            | [one] -> SynIndexerArg.One(one)
+            | synIdx -> SynIndexerArg.One(SynExpr.Tuple(synIdx, [range], range))
+
+        match instance with
+        | None -> 
+            let ident = sysMemberToSynMember range propertyInfo.DeclaringType
+            SynExpr.DotIndexedGet(ident, [synIndexer], range0, range0)
+        | Some inst ->
+            let sysInst = exprToAst inst
+            SynExpr.DotIndexedGet(sysInst, [synIndexer], range, range)
+
+    | PropertySet(inst, propertyInfo, values, v) -> notImpl expr
 
     | AddressOf e -> notImpl expr
     | AddressSet(e,e') -> notImpl expr
@@ -315,7 +330,6 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | DefaultValue(t) -> notImpl expr
     | NewDelegate(t, vars, body) -> notImpl expr
     | NewRecord(t, exprs) -> notImpl expr
-    | PropertySet(inst, propertyInfo, values, v) -> notImpl expr
     | TupleGet(inst, idx) -> notImpl expr
     | TypeTest(expr, t) -> notImpl expr
     | VarSet(v, expr) -> notImpl expr
