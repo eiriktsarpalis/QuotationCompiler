@@ -348,6 +348,23 @@ let rec exprToAst (expr : Expr) : SynExpr =
         | Some inst ->
             let synInst = exprToAst inst
             SynExpr.DotIndexedSet(synInst, [synIndexer], synValue, range, range, range)
+
+    | FieldGet(instance, fieldInfo) ->
+        match instance with
+        | None -> sysMemberToSynMember range fieldInfo
+        | Some inst ->
+            let synInst = exprToAst inst
+            SynExpr.DotGet(synInst, range, mkLongIdent range [mkIdent range (getFSharpName fieldInfo)], range)
+
+    | FieldSet(instance, fieldInfo, value) ->
+        let synValue = exprToAst value
+        match instance with
+        | None ->
+            let ident = LongIdentWithDots(getMemberPath range fieldInfo, [])
+            SynExpr.LongIdentSet(ident, synValue, range)
+        | Some inst ->
+            let synInst = exprToAst inst
+            SynExpr.DotSet(synInst, LongIdentWithDots([mkIdent range fieldInfo.Name], []), synValue, range)
         
     | VarSet(v, value) ->
         let synValue = exprToAst value
@@ -363,9 +380,6 @@ let rec exprToAst (expr : Expr) : SynExpr =
 
     | AddressOf e -> notImpl expr
     | AddressSet(e,e') -> notImpl expr
-    | FieldGet(inst, fieldInfo) -> notImpl expr
-    | FieldSet(inst, fieldInfo, value) -> notImpl expr
-
     | NewArray(t, e) -> notImpl expr
     | DefaultValue(t) -> notImpl expr
     | NewDelegate(t, vars, body) -> notImpl expr
