@@ -79,7 +79,7 @@ let tryGetCurriedFunctionGroupings (m : MethodInfo) =
     | None -> None
     | Some a -> Some(a.Counts |> Seq.toList)
 
-let sysMethodToSynMethod range (m : MethodInfo) =
+let sysMemberToSynMember range (m : MemberInfo) =
     let fsharpFunctionName =
         match m.TryGetCustomAttribute<CompilationSourceNameAttribute> () with
         | None -> m.Name
@@ -87,7 +87,12 @@ let sysMethodToSynMethod range (m : MethodInfo) =
 
     let longIdent =
         [
-            for id in m.DeclaringType.FullName.Split('`').[0].Split([|'.';'+'|]) do
+            let path =
+                match m.DeclaringType with
+                | null -> (m :?> Type).Namespace
+                | dt -> dt.FullName
+                
+            for id in path.Split('`').[0].Split([|'.';'+'|]) do
                 yield new Ident(id, range)
 
             yield new Ident(fsharpFunctionName, range)
@@ -166,7 +171,17 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synCond = exprToAst cond
         let synA = exprToAst a
         let synB = exprToAst b
-        SynExpr.IfThenElse(synCond, synA, Some synB, SequencePointInfoForBinding.SequencePointAtBinding range, false, range, range) 
+        SynExpr.IfThenElse(synCond, synA, Some synB, SequencePointInfoForBinding.SequencePointAtBinding range, false, range, range)
+
+    | NewObject(ctorInfo, args) ->
+        let synType = sysTypeToSynType range ctorInfo.DeclaringType
+        let synArgs = List.map exprToAst args
+        let synParam = SynExpr.Tuple(synArgs, [], range)
+        SynExpr.New(false, synType, synParam, range)
+
+    | NewTuple(args) ->
+        let synArgs = List.map exprToAst args
+        SynExpr.Tuple(synArgs, [], range)
 
     | Call(instance, methodInfo, args) ->
         let synArgs = List.map exprToAst args |> List.toArray
@@ -184,7 +199,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
 
         let synMethod = 
             match instance with
-            | None -> sysMethodToSynMethod range methodInfo
+            | None -> sysMemberToSynMember range methodInfo
             | Some inst ->
                 let synInst = exprToAst inst
                 let liwd = LongIdentWithDots([new Ident(methodInfo.Name, range)], [range])
@@ -192,6 +207,15 @@ let rec exprToAst (expr : Expr) : SynExpr =
 
         let callExpr,_ = List.fold foldApp (synMethod, 0) groupings
         callExpr
+
+    | PropertyGet(instance, propertyInfo, []) ->
+        // TODO : properties with arguments
+        match instance with
+        | None -> sysMemberToSynMember range propertyInfo
+        | Some inst ->
+            let sysInst = exprToAst inst
+            let liwd = LongIdentWithDots([new Ident(propertyInfo.Name, range)], [range])
+            SynExpr.DotGet(sysInst, range, liwd, range)
 
     | e -> notImpl (sprintf "%O" e)
 

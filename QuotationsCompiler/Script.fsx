@@ -9,8 +9,9 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
+            let m = new System.IO.MemoryStream()
 //            let x = 12
-            (1).GetType()
+            m.WriteByte 1uy
 
 //            let rec fib n =
 //                if n <= 1 then n
@@ -28,10 +29,12 @@ Test.compiledQuotation () 10
 
 let t = typeof<int>
 
-<@ t.GetArrayRank() @>
+<@ [|1..100|] @>
+
+op_Range 1 2
 
 let tree = Ast.ofSourceString """
 module Foo
 
-let f () = (1 + 1).Bar()
+let f () = [|1..100|]
 """
