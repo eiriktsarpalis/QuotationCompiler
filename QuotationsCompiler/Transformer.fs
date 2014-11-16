@@ -47,6 +47,9 @@ type MemberInfo with
         else
             Some(Seq.head attrs)
 
+    member m.ContainsAttribute<'Attr when 'Attr :> System.Attribute> () =
+        m.GetCustomAttributes<'Attr> () |> Seq.isEmpty |> not
+
     member m.Assembly = match m with :? Type as t -> t.Assembly | _ -> m.DeclaringType.Assembly
 
 let private moduleSuffixRegex = new Regex(@"^(.*)Module$", RegexOptions.Compiled)
@@ -56,6 +59,7 @@ let getFSharpName (m : MemberInfo) =
     | Some a -> a.SourceName
     | None ->
 
+    // this is a hack; need a better solution in the long term
     if m.Assembly = typeof<int option>.Assembly && fsharpPrefixRegex.IsMatch m.Name then
         let rm = fsharpPrefixRegex.Match m.Name
         rm.Groups.[1].Value
@@ -107,7 +111,6 @@ let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
 let mkUciIdent range (uci : UnionCaseInfo) =
     let path = getMemberPath range uci.DeclaringType
     LongIdentWithDots(path @ [new Ident(uci.Name, range)], [range])
-//    SynExpr.LongIdent(false, liwd, None, range)
 
 let mkVarPat range (v : Var) = 
     let lident = [new Ident(v.Name, range)]
@@ -245,8 +248,15 @@ let rec exprToAst (expr : Expr) : SynExpr =
 
     | Call(instance, methodInfo, args) ->
         let synArgs = List.map exprToAst args |> List.toArray
-        let groupings = defaultArg (tryGetCurriedFunctionGroupings methodInfo) [synArgs.Length]
-        // TODO : type app for generic methods
+        // TODO : need a way to identify F# 'generic values', i.e. typeof<'T>
+        // it seems that the only way to do this is by parsing F# assembly signature metadata
+        // for now, use a heuristic that happens to hold for FSharp.Core operators
+        // but not user-defined values. These are not supported for now.
+        let defaultGrouping =
+            if Array.isEmpty synArgs && methodInfo.ContainsAttribute<RequiresExplicitTypeArgumentsAttribute> () then []
+            else [synArgs.Length]
+
+        let groupings = defaultArg (tryGetCurriedFunctionGroupings methodInfo) defaultGrouping
         let rec foldApp (funcExpr : SynExpr, i : int) (grouping : int) =
             let args =
                 match grouping with
