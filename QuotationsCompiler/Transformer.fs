@@ -194,7 +194,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synBind = exprToAst bind
         let synBody = exprToAst body
         let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
-        let synBinding = SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range, SequencePointInfoForBinding.SequencePointAtBinding range)
+        let synBinding = SynBinding.Binding(None, SynBindingKind.NormalBinding, false, v.IsMutable, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range, SequencePointInfoForBinding.SequencePointAtBinding range)
         SynExpr.LetOrUse(false, false, [synBinding], synBody, range)
 
     | Application(left, right) ->
@@ -349,6 +349,10 @@ let rec exprToAst (expr : Expr) : SynExpr =
             let synInst = exprToAst inst
             SynExpr.DotIndexedSet(synInst, [synIndexer], synValue, range, range, range)
         
+    | VarSet(v, value) ->
+        let synValue = exprToAst value
+        let synVar = LongIdentWithDots([mkIdent range v.Name], [])
+        SynExpr.LongIdentSet(synVar, synValue, range)
 
     | AddressOf e -> notImpl expr
     | AddressSet(e,e') -> notImpl expr
@@ -362,7 +366,6 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | NewRecord(t, exprs) -> notImpl expr
     | TupleGet(inst, idx) -> notImpl expr
     | TypeTest(expr, t) -> notImpl expr
-    | VarSet(v, expr) -> notImpl expr
     | Quote e -> raise <| new NotSupportedException("nested quotations not supported")
     | _ -> notImpl expr
 

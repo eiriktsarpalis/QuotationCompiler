@@ -9,10 +9,10 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            let x = ref 0
-            while !x < 10 do
+            let mutable x = 0
+            while x < 10 do
                 System.Console.WriteLine "test"
-                incr x
+                x <- x + 1
         @>
 
 let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
