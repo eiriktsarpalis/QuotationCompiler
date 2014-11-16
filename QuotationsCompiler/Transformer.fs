@@ -38,33 +38,33 @@ let tryParseRange (expr : Expr) =
         Some <| mkRange file p1 p2
     | _ -> None
 
-let rec sysTypeToSynType (t : System.Type) : SynType =
+let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
     if FSharpType.IsTuple t then
         let telems = 
             FSharpType.GetTupleElements t 
             |> Array.toList
-            |> List.map(fun et -> false, sysTypeToSynType t)
+            |> List.map(fun et -> false, sysTypeToSynType range t)
 
-        SynType.Tuple(telems, range0)
+        SynType.Tuple(telems, range)
     elif FSharpType.IsFunction t then
         let dom, cod = FSharpType.GetFunctionElements t
-        let synDom, synCod = sysTypeToSynType dom, sysTypeToSynType cod
-        SynType.Fun(synDom, synCod, range0)
+        let synDom, synCod = sysTypeToSynType range dom, sysTypeToSynType range cod
+        SynType.Fun(synDom, synCod, range)
     elif t.IsGenericType then
-        let synDef = t.GetGenericTypeDefinition() |> sysTypeToSynType
-        let synParams = t.GetGenericArguments() |> Seq.map sysTypeToSynType |> Seq.toList
-        SynType.App(synDef, None, synParams, [], None, (* isPostFix *) false, range0)
+        let synDef = t.GetGenericTypeDefinition() |> sysTypeToSynType range
+        let synParams = t.GetGenericArguments() |> Seq.map (sysTypeToSynType range) |> Seq.toList
+        SynType.App(synDef, None, synParams, [], None, (* isPostFix *) false, range)
     elif t.IsArray then
-        let synElem = t.GetElementType() |> sysTypeToSynType
+        let synElem = t.GetElementType() |> sysTypeToSynType range
         let rk = t.GetArrayRank()
-        SynType.Array(rk, synElem, range0)
+        SynType.Array(rk, synElem, range)
     else
         let longIdent = 
             t.FullName.Split('`').[0].Split([|'.';'+'|]) 
-            |> Seq.map(fun n -> new Ident(n, range0))
+            |> Seq.map(fun n -> new Ident(n, range))
             |> Seq.toList
 
-        let liwd = LongIdentWithDots(longIdent, [range0])
+        let liwd = LongIdentWithDots(longIdent, [range])
         SynType.LongIdent liwd
 
 type MemberInfo with
@@ -79,7 +79,7 @@ let tryGetCurriedFunctionGroupings (m : MethodInfo) =
     | None -> None
     | Some a -> Some(a.Counts |> Seq.toList)
 
-let sysMethodToSynMethod (m : MethodInfo) =
+let sysMethodToSynMethod range (m : MethodInfo) =
     let fsharpFunctionName =
         match m.TryGetCustomAttribute<CompilationSourceNameAttribute> () with
         | None -> m.Name
@@ -88,13 +88,13 @@ let sysMethodToSynMethod (m : MethodInfo) =
     let longIdent =
         [
             for id in m.DeclaringType.FullName.Split('`').[0].Split([|'.';'+'|]) do
-                yield new Ident(id, range0)
+                yield new Ident(id, range)
 
-            yield new Ident(fsharpFunctionName, range0)
+            yield new Ident(fsharpFunctionName, range)
         ]
 
-    let liwd = LongIdentWithDots(longIdent, [range0])
-    SynExpr.LongIdent(false, liwd, None, range0)
+    let liwd = LongIdentWithDots(longIdent, [range])
+    SynExpr.LongIdent(false, liwd, None, range)
         
 
 let rec exprToAst (expr : Expr) : SynExpr =
@@ -127,7 +127,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
         SynExpr.Ident ident
         
     | Lambda(v, body) ->
-        let vType = sysTypeToSynType v.Type
+        let vType = sysTypeToSynType range v.Type
         let spat = SynSimplePat.Id(new Ident(v.Name, range), None, false ,false ,false, range)
         let untypedPat = SynSimplePats.SimplePats([spat], range)
         let typedPat = SynSimplePats.Typed(untypedPat, vType, range)
@@ -136,7 +136,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
 
     | LetRecursive(bindings, body) ->
         let mkBinding (v : Var, bind : Expr) =
-            let vType = sysTypeToSynType v.Type
+            let vType = sysTypeToSynType range v.Type
             let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range)], []), None, None, SynConstructorArgs.Pats [], None, range)
             let typedPat = SynPat.Typed(untypedPat, vType, range)
             let synBind = exprToAst bind
@@ -148,7 +148,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
         SynExpr.LetOrUse(true, false, bindings, synBody, range)
 
     | Let(v, bind, body) ->
-        let vType = sysTypeToSynType v.Type
+        let vType = sysTypeToSynType range v.Type
         let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range)], []), None, None, SynConstructorArgs.Pats [], None, range)
         let typedPat = SynPat.Typed(untypedPat, vType, range)
         let synBind = exprToAst bind
@@ -168,20 +168,28 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synB = exprToAst b
         SynExpr.IfThenElse(synCond, synA, Some synB, SequencePointInfoForBinding.SequencePointAtBinding range, false, range, range) 
 
-    | Call(None, methodInfo, args) ->
+    | Call(instance, methodInfo, args) ->
         let synArgs = List.map exprToAst args |> List.toArray
         let groupings = defaultArg (tryGetCurriedFunctionGroupings methodInfo) [synArgs.Length]
         // TODO : type app for generic methods
         let rec foldApp (funcExpr : SynExpr, i : int) (grouping : int) =
             let args =
                 match grouping with
+                | 0 -> SynExpr.Const(SynConst.Unit, range)
                 | 1 -> synArgs.[i]
                 | _ -> SynExpr.Paren(SynExpr.Tuple(Array.toList <| synArgs.[i .. i + grouping], [], range), range, None, range)
 
             let funcExpr2 = SynExpr.App(ExprAtomicFlag.NonAtomic, false, funcExpr, args, range)
             funcExpr2, i + grouping
 
-        let synMethod = sysMethodToSynMethod methodInfo
+        let synMethod = 
+            match instance with
+            | None -> sysMethodToSynMethod range methodInfo
+            | Some inst ->
+                let synInst = exprToAst inst
+                let liwd = LongIdentWithDots([new Ident(methodInfo.Name, range)], [range])
+                SynExpr.DotGet(synInst, range, liwd, range)
+
         let callExpr,_ = List.fold foldApp (synMethod, 0) groupings
         callExpr
 

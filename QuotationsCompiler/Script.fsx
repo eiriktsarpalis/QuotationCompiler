@@ -9,12 +9,15 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            let rec fib n =
-                if n <= 1 then n
-                else
-                    fib(n-1) + fib(n-2)
+//            let x = 12
+            (1).GetType()
 
-            fib
+//            let rec fib n =
+//                if n <= 1 then n
+//                else
+//                    fib(n-1) + fib(n-2)
+//
+//            fib
         @>
 
 let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
@@ -23,11 +26,12 @@ let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
 
 Test.compiledQuotation () 10
 
+let t = typeof<int>
 
-
+<@ t.GetArrayRank() @>
 
 let tree = Ast.ofSourceString """
 module Foo
 
-let f () = fun x -> round 3.14159
+let f () = (1 + 1).Bar()
 """
