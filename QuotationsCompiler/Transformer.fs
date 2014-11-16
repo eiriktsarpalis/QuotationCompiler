@@ -28,6 +28,16 @@ let updateDependencies (state : TransformerState) (t : Type) =
     | Some _ -> state
     | None -> { state with Dependencies = Map.add key t.Assembly state.Dependencies }
 
+let tryParseRange (expr : Expr) =
+    match expr.CustomAttributes with
+    | [ NewTuple [_; NewTuple [ Value (:? string as file, _); 
+                                Value (:? int as r1, _); Value (:? int as c1, _); 
+                                Value (:? int as r2, _); Value(:? int as c2, _)]]] -> 
+        let p1 = mkPos r1 c1
+        let p2 = mkPos r2 c2
+        Some <| mkRange file p1 p2
+    | _ -> None
+
 let rec sysTypeToSynType (t : System.Type) : SynType =
     if FSharpType.IsTuple t then
         let telems = 
@@ -85,60 +95,78 @@ let sysMethodToSynMethod (m : MethodInfo) =
 
     let liwd = LongIdentWithDots(longIdent, [range0])
     SynExpr.LongIdent(false, liwd, None, range0)
-    
         
 
 let rec exprToAst (expr : Expr) : SynExpr =
+    let range = defaultArg (tryParseRange expr) range0
     match expr with
-    | Value(:? int as i, t) when t = typeof<int> -> SynExpr.Const(SynConst.Int32 i, range0)
-    | Value(:? float as i, t) when t = typeof<float> -> SynExpr.Const(SynConst.Double i, range0)
-    | Value(:? string as s, t) when t = typeof<string> -> SynExpr.Const(SynConst.String(s, range0), range0)
-    | Value (_,t) -> notImpl (sprintf "Value %O" t)
+    // parse for constants
+    | Value(:? bool as b, t) when t = typeof<bool> -> SynExpr.Const(SynConst.Bool b, range)
+    | Value(:? byte as b, t) when t = typeof<byte> -> SynExpr.Const(SynConst.Byte b, range)
+    | Value(:? sbyte as b, t) when t = typeof<sbyte> -> SynExpr.Const(SynConst.SByte b, range)
+    | Value(:? char as c, t) when t = typeof<char> -> SynExpr.Const(SynConst.Char c, range)
+    | Value(:? decimal as d, t) when t = typeof<decimal> -> SynExpr.Const(SynConst.Decimal d, range)
+    | Value(:? int16 as i, t) when t = typeof<int16> -> SynExpr.Const(SynConst.Int16 i, range)
+    | Value(:? int32 as i, t) when t = typeof<int32> -> SynExpr.Const(SynConst.Int32 i, range)
+    | Value(:? int64 as i, t) when t = typeof<int64> -> SynExpr.Const(SynConst.Int64 i, range)
+    | Value(:? uint16 as i, t) when t = typeof<uint16> -> SynExpr.Const(SynConst.UInt16 i, range)
+    | Value(:? uint32 as i, t) when t = typeof<uint32> -> SynExpr.Const(SynConst.UInt32 i, range)
+    | Value(:? uint64 as i, t) when t = typeof<uint64> -> SynExpr.Const(SynConst.UInt64 i, range)
+    | Value(:? IntPtr as i, t) when t = typeof<IntPtr> -> SynExpr.Const(SynConst.IntPtr(int64 i), range)
+    | Value(:? UIntPtr as i, t) when t = typeof<UIntPtr> -> SynExpr.Const(SynConst.UIntPtr(uint64 i), range)
+    | Value(:? single as f, t) when t = typeof<single> -> SynExpr.Const(SynConst.Single f, range)
+    | Value(:? double as f, t) when t = typeof<double> -> SynExpr.Const(SynConst.Double f, range)
+    | Value(:? string as s, t) when t = typeof<string> -> SynExpr.Const(SynConst.String(s, range), range)
+    | Value(:? unit, t) when t = typeof<unit> -> SynExpr.Const(SynConst.Unit, range)
+    | Value(:? (byte[]) as bs, t) when t = typeof<byte[]> -> SynExpr.Const(SynConst.Bytes(bs, range), range)
+    | Value(:? (uint16[]) as is, t) when t = typeof<uint16[]> -> SynExpr.Const(SynConst.UInt16s is, range)
+    | Value (_,t) -> raise <| new NotSupportedException(sprintf "Quotation captures closure of type %O." t)
+    // Lambda
     | Var v ->
-        let ident = new Ident(v.Name, range0)
+        let ident = new Ident(v.Name, range)
         SynExpr.Ident ident
         
     | Lambda(v, body) ->
         let vType = sysTypeToSynType v.Type
-        let spat = SynSimplePat.Id(new Ident(v.Name, range0), None, false ,false ,false, range0)
-        let untypedPat = SynSimplePats.SimplePats([spat], range0)
-        let typedPat = SynSimplePats.Typed(untypedPat, vType, range0)
+        let spat = SynSimplePat.Id(new Ident(v.Name, range), None, false ,false ,false, range)
+        let untypedPat = SynSimplePats.SimplePats([spat], range)
+        let typedPat = SynSimplePats.Typed(untypedPat, vType, range)
         let bodyAst = exprToAst body
-        SynExpr.Lambda(false, false, typedPat, bodyAst, range0)
+        SynExpr.Lambda(false, false, typedPat, bodyAst, range)
 
     | LetRecursive(bindings, body) ->
         let mkBinding (v : Var, bind : Expr) =
             let vType = sysTypeToSynType v.Type
-            let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range0)], []), None, None, SynConstructorArgs.Pats [], None, range0)
-            let typedPat = SynPat.Typed(untypedPat, vType, range0)
+            let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range)], []), None, None, SynConstructorArgs.Pats [], None, range)
+            let typedPat = SynPat.Typed(untypedPat, vType, range)
             let synBind = exprToAst bind
             let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
-            SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range0, SequencePointInfoForBinding.SequencePointAtBinding range0)
+            SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range, SequencePointInfoForBinding.SequencePointAtBinding range)
 
         let bindings = List.map mkBinding bindings
         let synBody = exprToAst body
-        SynExpr.LetOrUse(true, false, bindings, synBody, range0)
+        SynExpr.LetOrUse(true, false, bindings, synBody, range)
 
     | Let(v, bind, body) ->
         let vType = sysTypeToSynType v.Type
-        let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range0)], []), None, None, SynConstructorArgs.Pats [], None, range0)
-        let typedPat = SynPat.Typed(untypedPat, vType, range0)
+        let untypedPat = SynPat.LongIdent(LongIdentWithDots([new Ident(v.Name, range)], []), None, None, SynConstructorArgs.Pats [], None, range)
+        let typedPat = SynPat.Typed(untypedPat, vType, range)
         let synBind = exprToAst bind
         let synBody = exprToAst body
         let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
-        let synBinding = SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range0, SequencePointInfoForBinding.SequencePointAtBinding range0)
-        SynExpr.LetOrUse(false, false, [synBinding], synBody, range0)
+        let synBinding = SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range, SequencePointInfoForBinding.SequencePointAtBinding range)
+        SynExpr.LetOrUse(false, false, [synBinding], synBody, range)
 
     | Application(left, right) ->
         let synLeft = exprToAst left
         let synRight = exprToAst right
-        SynExpr.App(ExprAtomicFlag.NonAtomic, false, synLeft, synRight, range0)
+        SynExpr.App(ExprAtomicFlag.NonAtomic, false, synLeft, synRight, range)
 
     | IfThenElse(cond, a, b) ->
         let synCond = exprToAst cond
         let synA = exprToAst a
         let synB = exprToAst b
-        SynExpr.IfThenElse(synCond, synA, Some synB, SequencePointInfoForBinding.SequencePointAtBinding range0, false, range0, range0) 
+        SynExpr.IfThenElse(synCond, synA, Some synB, SequencePointInfoForBinding.SequencePointAtBinding range, false, range, range) 
 
     | Call(None, methodInfo, args) ->
         let synArgs = List.map exprToAst args |> List.toArray
@@ -148,9 +176,9 @@ let rec exprToAst (expr : Expr) : SynExpr =
             let args =
                 match grouping with
                 | 1 -> synArgs.[i]
-                | _ -> SynExpr.Paren(SynExpr.Tuple(Array.toList <| synArgs.[i .. i + grouping], [], range0), range0, None, range0)
+                | _ -> SynExpr.Paren(SynExpr.Tuple(Array.toList <| synArgs.[i .. i + grouping], [], range), range, None, range)
 
-            let funcExpr2 = SynExpr.App(ExprAtomicFlag.NonAtomic, false, funcExpr, args, range0)
+            let funcExpr2 = SynExpr.App(ExprAtomicFlag.NonAtomic, false, funcExpr, args, range)
             funcExpr2, i + grouping
 
         let synMethod = sysMethodToSynMethod methodInfo
