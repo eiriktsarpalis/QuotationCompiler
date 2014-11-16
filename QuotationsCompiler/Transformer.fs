@@ -225,6 +225,11 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synB = exprToAst b
         SynExpr.IfThenElse(synCond, synA, Some synB, SequencePointInfoForBinding.SequencePointAtBinding range, false, range, range)
 
+    | WhileLoop(cond, body) ->
+        let synCond = exprToAst cond
+        let synBody = exprToAst body
+        SynExpr.While(SequencePointAtWhileLoop range, synCond, synBody, range)
+
     | Coerce(e, t) ->
         let synExpr = exprToAst e
         let synType = sysTypeToSynType range t
@@ -350,7 +355,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | FieldGet(inst, fieldInfo) -> notImpl expr
     | FieldSet(inst, fieldInfo, value) -> notImpl expr
     | ForIntegerRangeLoop(v, e, e', e'') -> notImpl expr
-    | WhileLoop(c,b) -> notImpl expr
+
     | NewArray(t, e) -> notImpl expr
     | DefaultValue(t) -> notImpl expr
     | NewDelegate(t, vars, body) -> notImpl expr
