@@ -9,16 +9,12 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            let m = new System.IO.MemoryStream()
-//            let x = 12
-            m.WriteByte 1uy
+            let rec fib n =
+                if n <= 1 then n
+                else
+                    fib(n-1) + fib(n-2)
 
-//            let rec fib n =
-//                if n <= 1 then n
-//                else
-//                    fib(n-1) + fib(n-2)
-//
-//            fib
+            fib
         @>
 
 let err = Ast.compile "/Users/eirik/Desktop" [] [ast]

@@ -2,6 +2,7 @@
 
 open System
 open System.Reflection
+open System.Text.RegularExpressions
 
 open Microsoft.FSharp.Reflection
 
@@ -38,6 +39,42 @@ let tryParseRange (expr : Expr) =
         Some <| mkRange file p1 p2
     | _ -> None
 
+
+type MemberInfo with
+    member m.TryGetCustomAttribute<'Attr when 'Attr :> System.Attribute> () =
+        let attrs = m.GetCustomAttributes<'Attr> ()
+        if Seq.isEmpty attrs then None
+        else
+            Some(Seq.head attrs)
+
+let private moduleSuffixRegex = new Regex(@"^(.*)Module$", RegexOptions.Compiled)
+let getFSharpName (m : MemberInfo) =
+    match m.TryGetCustomAttribute<CompilationSourceNameAttribute> () with
+    | Some a -> a.SourceName
+    | None ->
+
+    match m, m.TryGetCustomAttribute<CompilationRepresentationAttribute> () with
+    | :? Type as t, Some attr when attr.Flags.HasFlag CompilationRepresentationFlags.ModuleSuffix && FSharpType.IsModule t ->
+        let rm = moduleSuffixRegex.Match m.Name
+        if rm.Success then rm.Groups.[1].Value
+        else
+            m.Name
+    | _ -> m.Name
+        
+    
+
+let getMemberPath range (m : MemberInfo) =
+    let rec aux (m : MemberInfo) = seq {
+        match m.DeclaringType with
+        | null -> yield! (m :?> Type).Namespace.Split('.') 
+        | dt -> yield! aux dt 
+        
+        yield getFSharpName m
+    }
+
+    let ids = aux m |> Seq.map (fun n -> new Ident(n, range)) |> Seq.toList
+    LongIdentWithDots(ids, [range])
+
 let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
     if FSharpType.IsTuple t then
         let telems = 
@@ -59,20 +96,8 @@ let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
         let rk = t.GetArrayRank()
         SynType.Array(rk, synElem, range)
     else
-        let longIdent = 
-            t.FullName.Split('`').[0].Split([|'.';'+'|]) 
-            |> Seq.map(fun n -> new Ident(n, range))
-            |> Seq.toList
-
-        let liwd = LongIdentWithDots(longIdent, [range])
+        let liwd = getMemberPath range t
         SynType.LongIdent liwd
-
-type MemberInfo with
-    member m.TryGetCustomAttribute<'Attr when 'Attr :> System.Attribute> () =
-        let attrs = m.GetCustomAttributes<'Attr> ()
-        if Seq.isEmpty attrs then None
-        else
-            Some(Seq.head attrs)
 
 let tryGetCurriedFunctionGroupings (m : MethodInfo) =
     match m.TryGetCustomAttribute<CompilationArgumentCountsAttribute> () with
@@ -80,25 +105,7 @@ let tryGetCurriedFunctionGroupings (m : MethodInfo) =
     | Some a -> Some(a.Counts |> Seq.toList)
 
 let sysMemberToSynMember range (m : MemberInfo) =
-    let fsharpFunctionName =
-        match m.TryGetCustomAttribute<CompilationSourceNameAttribute> () with
-        | None -> m.Name
-        | Some a -> a.SourceName
-
-    let longIdent =
-        [
-            let path =
-                match m.DeclaringType with
-                | null -> (m :?> Type).Namespace
-                | dt -> dt.FullName
-                
-            for id in path.Split('`').[0].Split([|'.';'+'|]) do
-                yield new Ident(id, range)
-
-            yield new Ident(fsharpFunctionName, range)
-        ]
-
-    let liwd = LongIdentWithDots(longIdent, [range])
+    let liwd = getMemberPath range m
     SynExpr.LongIdent(false, liwd, None, range)
         
 
