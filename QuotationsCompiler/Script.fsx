@@ -23,5 +23,5 @@ Test.compiledQuotation ()
 let tree = Ast.ofSourceString """
 module Foo
 
-let f () = Some 42
+let f () = Option<int>.Some 2
 """

@@ -52,6 +52,12 @@ type MemberInfo with
 
     member m.Assembly = match m with :? Type as t -> t.Assembly | _ -> m.DeclaringType.Assembly
 
+let inline mkIdent range text = new Ident(text, range)
+let inline mkLongIdent range (li : Ident list) = LongIdentWithDots(li, [range])
+let inline mkVarPat range (v : Quotations.Var) = 
+    let lident = mkLongIdent range [mkIdent range v.Name]
+    SynPat.LongIdent(lident, None, None, SynConstructorArgs.Pats [], None, range)
+
 let private moduleSuffixRegex = new Regex(@"^(.*)Module$", RegexOptions.Compiled)
 let private fsharpPrefixRegex = new Regex(@"^FSharp(.*)`[0-9]+$", RegexOptions.Compiled)
 let getFSharpName (m : MemberInfo) =
@@ -82,7 +88,7 @@ let getMemberPath range (m : MemberInfo) =
         yield getFSharpName m
     }
 
-    aux m |> Seq.map (fun n -> new Ident(n, range)) |> Seq.toList
+    aux m |> Seq.map (mkIdent range) |> Seq.toList
 
 let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
     if FSharpType.IsTuple t then
@@ -110,11 +116,16 @@ let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
 
 let mkUciIdent range (uci : UnionCaseInfo) =
     let path = getMemberPath range uci.DeclaringType
-    LongIdentWithDots(path @ [new Ident(uci.Name, range)], [range])
+    LongIdentWithDots(path @ [mkIdent range uci.Name], [range])
 
-let mkVarPat range (v : Var) = 
-    let lident = [new Ident(v.Name, range)]
-    SynPat.LongIdent(LongIdentWithDots(lident, []), None, None, SynConstructorArgs.Pats [], None, range)
+let mkUciCtor range (uci : UnionCaseInfo) =
+    if uci.DeclaringType.IsGenericType then
+        let synUnion = SynExpr.LongIdent(false, mkLongIdent range (getMemberPath range uci.DeclaringType), None, range)
+        let synArgs = uci.DeclaringType.GetGenericArguments() |> Seq.map (sysTypeToSynType range) |> Seq.toList
+        let unionTy = SynExpr.TypeApp(synUnion, range, synArgs, [range], None, range, range)
+        SynExpr.DotGet(unionTy, range, mkLongIdent range [mkIdent range uci.Name], range)
+    else
+        SynExpr.LongIdent(false, mkUciIdent range uci, None, range)
 
 let tryGetCurriedFunctionGroupings (m : MethodInfo) =
     match m.TryGetCustomAttribute<CompilationArgumentCountsAttribute> () with
@@ -152,12 +163,12 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | Value (_,t) -> raise <| new NotSupportedException(sprintf "Quotation captures closure of type %O." t)
     // Lambda
     | Var v ->
-        let ident = new Ident(v.Name, range)
+        let ident = mkIdent range v.Name
         SynExpr.Ident ident
         
     | Lambda(v, body) ->
         let vType = sysTypeToSynType range v.Type
-        let spat = SynSimplePat.Id(new Ident(v.Name, range), None, false ,false ,false, range)
+        let spat = SynSimplePat.Id(mkIdent range v.Name, None, false ,false ,false, range)
         let untypedPat = SynSimplePats.SimplePats([spat], range)
         let typedPat = SynSimplePats.Typed(untypedPat, vType, range)
         let bodyAst = exprToAst body
@@ -230,21 +241,21 @@ let rec exprToAst (expr : Expr) : SynExpr =
         SynExpr.Tuple(synArgs, [], range)
 
     | NewUnionCase(uci, args) ->
-        let uciIdent = SynExpr.LongIdent(false, mkUciIdent range uci, None, range)
+        let uciCtor = mkUciCtor range uci
         let synArgs = List.map exprToAst args
         match synArgs with
-        | [] -> uciIdent
-        | [a] -> SynExpr.App(ExprAtomicFlag.Atomic, false, uciIdent, a, range)
+        | [] -> uciCtor
+        | [a] -> SynExpr.App(ExprAtomicFlag.Atomic, false, uciCtor, a, range)
         | _ ->
             let synParam = SynExpr.Tuple(synArgs, [], range)
-            SynExpr.App(ExprAtomicFlag.Atomic, false, uciIdent, synParam, range)
+            SynExpr.App(ExprAtomicFlag.Atomic, false, uciCtor, synParam, range)
 
     | UnionCaseTest(expr, uci) ->
         let synExpr = exprToAst expr
         let uciIdent = SynPat.LongIdent(mkUciIdent range uci, None, None, SynConstructorArgs.Pats [], None, range)
-        let clause0 = SynMatchClause.Clause(uciIdent, None, SynExpr.Const(SynConst.Bool true, range0), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
-        let clause1 = SynMatchClause.Clause(SynPat.Wild range0, None, SynExpr.Const(SynConst.Bool false, range0), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
-        SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [clause0 ; clause1], false, range)
+        let matchClause = SynMatchClause.Clause(uciIdent, None, SynExpr.Const(SynConst.Bool true, range0), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
+        let notMatchClause = SynMatchClause.Clause(SynPat.Wild range0, None, SynExpr.Const(SynConst.Bool false, range0), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
+        SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [matchClause ; notMatchClause], false, range)
 
     | Call(instance, methodInfo, args) ->
         let synArgs = List.map exprToAst args |> List.toArray
@@ -272,7 +283,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
             | None -> sysMemberToSynMember range methodInfo
             | Some inst ->
                 let synInst = exprToAst inst
-                let liwd = LongIdentWithDots([new Ident(methodInfo.Name, range)], [range])
+                let liwd = mkLongIdent range [mkIdent range methodInfo.Name]
                 SynExpr.DotGet(synInst, range, liwd, range)
 
         let synMethod =
@@ -291,7 +302,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
         | None -> sysMemberToSynMember range propertyInfo
         | Some inst ->
             let sysInst = exprToAst inst
-            let liwd = LongIdentWithDots([new Ident(propertyInfo.Name, range)], [range])
+            let liwd = mkLongIdent range [mkIdent range propertyInfo.Name]
             SynExpr.DotGet(sysInst, range, liwd, range)
 
     | Quote e -> raise <| new NotSupportedException("nested quotations not supported")
@@ -300,14 +311,14 @@ let rec exprToAst (expr : Expr) : SynExpr =
 
 let synExprToLetBinding (expr : SynExpr) =
     let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
-    let synPat = SynPat.LongIdent(LongIdentWithDots([new Ident("compiledQuotation", range0)], []), None, None, SynConstructorArgs.Pats [ SynPat.Paren(SynPat.Const(SynConst.Unit, range0), range0)], None, range0)
+    let synPat = SynPat.LongIdent(mkLongIdent range0 [mkIdent range0 "compiledQuotation"], None, None, SynConstructorArgs.Pats [ SynPat.Paren(SynPat.Const(SynConst.Unit, range0), range0)], None, range0)
     let binding = SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, synPat, None, expr, range0, SequencePointInfoForBinding.SequencePointAtBinding range0)
     SynModuleDecl.Let(false, [binding], range0)
 
 
 let letBindingToParsedInput (decl : SynModuleDecl) =
-    let modl = SynModuleOrNamespace([new Ident("Test", range0)], true, [decl], PreXmlDoc.Empty,[], None, range0)
-    let file = ParsedImplFileInput("/test.fs", false, QualifiedNameOfFile(new Ident("Test", range0)), [],[], [modl],false)
+    let modl = SynModuleOrNamespace([mkIdent range0 "Test"], true, [decl], PreXmlDoc.Empty,[], None, range0)
+    let file = ParsedImplFileInput("/test.fs", false, QualifiedNameOfFile(mkIdent range0 "Test"), [],[], [modl],false)
     ParsedInput.ImplFile file
 
 
