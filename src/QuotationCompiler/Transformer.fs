@@ -164,7 +164,8 @@ let convertExprToAst (expr : Expr) =
             let fields = FSharpType.GetRecordFields(ty, BindingFlags.NonPublic ||| BindingFlags.Public) |> Array.toList
             let synEntries = List.map exprToAst entries
             let entries = (fields, synEntries) ||> List.map2 (fun f e -> (mkLongIdent range [mkIdent range f.Name], true), Some e, None)
-            SynExpr.Record(None, None, entries, range)
+            let synExpr = SynExpr.Record(None, None, entries, range)
+            SynExpr.Typed(synExpr, synTy, range)
 
         | NewUnionCase(uci, args) ->
             append uci.DeclaringType

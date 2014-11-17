@@ -15,3 +15,15 @@ let f =
         @>
 
 f ()
+
+
+Ast.ofSourceString """
+module Foo
+    
+let x = { V = 12 } : Foo.Bar
+"""
+
+module Foo =
+    type Bar = { V : int }
+
+let x = { V = 12 } : Foo.Bar

@@ -1,9 +1,11 @@
-﻿module QuotationCompiler.Tests
+﻿module QuotationCompiler.Tests.TestModule
 
 open NUnit.Framework
 open FsUnit
 
 open Microsoft.FSharp.Quotations
+
+open QuotationCompiler
 
 let compile (e : Expr<'T>) = QuotationCompiler.ToFunc e
 let compileRun (e : Expr<'T>) = QuotationCompiler.ToFunc e ()
@@ -46,3 +48,38 @@ let ``1. Array leaf`` () =
     compileRun <@ [||] : int [] @> |> should equal Array.empty<int>
     compileRun <@ [|1;2;3|] @> |> should equal [|1;2;3|]
     compileRun <@ [|1 .. 10|] @> |> should equal [|1..10|]
+
+[<Test>]
+let ``1. Union leaf`` () =
+    compileRun <@ None : int option @> |> should equal Option<int>.None
+    compileRun <@ Some (1,"lorem ipsum") @> |> should equal (Some (1,"lorem ipsum"))
+    compileRun <@ Choice1Of2 "value" : Choice<string,exn> @> |> should equal (Choice<string,exn>.Choice1Of2 "value")
+    compileRun <@ Choice1Of2 "value" : Choice<string,exn> @> |> should equal (Choice<string,exn>.Choice1Of2 "value")
+//    compileRun <@ A @> |> should equal A
+//    compileRun <@ B(42, "lorem ipsum") @> |> should equal (B(42, "lorem ipsum"))
+//    compileRun <@ GA (1,1) @> |> should equal (GA(1,1))
+
+[<Test>]
+let ``1. Record leaf`` () =
+    compileRun <@ { contents = 42 } @> |> should equal (ref 42)
+//    compileRun <@ { Num = 42 ; Text = "text" ; Value = 3. } @> |> should equal { Num = 42 ; Text = "text" ; Value = 3. }
+//    compileRun <@ { GNum = 42 ; GText = "text" ; GValue = Some 3. } @> |> should equal { GNum = 42 ; GText = "text" ; GValue = Some 3. }
+
+[<Test>]
+let ``1. Tuple leaf`` () =
+    compileRun <@ (1,"2") @> |> should equal (1,"2")
+    compileRun <@ (1,"2", Some 42, [1..2]) @> |> should equal (1,"2", Some 42, [1..2])
+
+
+[<Test>]
+let ``2. Simple let binding`` () =
+    compileRun <@ let x = 1 + 1 in x + x @> |> should equal 4
+
+[<Test>]
+let ``2. Nested let binding`` () =
+    compileRun 
+        <@ 
+            let x = let z = 1 in z + z
+            let y = let z = 1. in z + z
+            (x,y) 
+        @> |> should equal (2,2.)
