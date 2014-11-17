@@ -274,6 +274,23 @@ let rec exprToAst (expr : Expr) : SynExpr =
             let synParam = SynExpr.Tuple(synArgs, [], range)
             SynExpr.App(ExprAtomicFlag.Atomic, false, uciCtor, synParam, range)
 
+    | NewDelegate(t, vars, body) ->
+        let synType = sysTypeToSynType range t
+        let synBody = exprToAst body
+        let rec mkLambda acc (rest : Var list) =
+            match rest with
+            | [] -> acc
+            | v :: tail ->
+                let vType = sysTypeToSynType range v.Type
+                let spat = SynSimplePat.Id(mkIdent range v.Name, None, false ,false ,false, range)
+                let untypedPat = SynSimplePats.SimplePats([spat], range)
+                let typedPat = SynSimplePats.Typed(untypedPat, vType, range)
+                let synLambda = SynExpr.Lambda(false, false, typedPat, acc, range)
+                mkLambda synLambda tail
+
+        let synAbs = mkLambda synBody (List.rev vars)
+        SynExpr.New(false, synType, SynExpr.Paren(synAbs, range, None, range), range)
+
     | UnionCaseTest(expr, uci) ->
         let synExpr = exprToAst expr
         let uciIdent = SynPat.LongIdent(mkUciIdent range uci, None, None, SynConstructorArgs.Pats [], None, range)
@@ -417,7 +434,6 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | AddressOf e -> notImpl expr
     | AddressSet(e,e') -> notImpl expr
     | DefaultValue(t) -> notImpl expr
-    | NewDelegate(t, vars, body) -> notImpl expr
     | Quote e -> raise <| new NotSupportedException("nested quotations not supported")
     | _ -> notImpl expr
 

@@ -9,8 +9,7 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            let t = box (1,2)
-            let (x,_) = unbox<int * int> t in x + 1
+            new Handler<int>(fun x y -> x.GetHashCode() + y |> ignore)
 //            let mutable x = 0
 //            while x < 10 do
 //                System.Console.WriteLine "test"
@@ -26,6 +25,7 @@ Test.compiledQuotation ()
 let tree = Ast.ofSourceString """
 module Foo
 
-let f () = 
-    let (_,x,_) = (1,2) in x
+type Foo = delegate of int -> int
+
+let f () = new Foo(fun x y -> x + y)
 """
