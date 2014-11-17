@@ -35,7 +35,7 @@ type QuotationsCompiler =
         | [||] , 0, Some a -> a
         | errors, _, _ -> failwithf "Compilation failed with errors %A." errors
 
-    static member ToFunc(expr : Expr<'T>) =
+    static member ToFunc(expr : Expr<'T>) : unit -> 'T =
         let dynAss = QuotationsCompiler.ToDynamicAssembly expr
         let methodInfo = dynAss.GetType(Transformer.moduleName).GetMethod(Transformer.compiledFunctionName)
         if typeof<'T> = typeof<unit> then

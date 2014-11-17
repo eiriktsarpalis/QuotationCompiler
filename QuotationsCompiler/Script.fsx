@@ -8,6 +8,7 @@ let f =
         <@
             let mutable x = 0
             while x < 10 do
+                do System.Threading.Thread.Sleep 100
                 System.Console.WriteLine "test"
                 x <- x + 1
         @>
