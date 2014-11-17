@@ -352,7 +352,9 @@ let convertExprToAst (expr : Expr) =
 
     let synExprToLetBinding (expr : SynExpr) =
         let synPat = SynPat.LongIdent(mkLongIdent range0 [mkIdent range0 compiledFunctionName], None, None, SynConstructorArgs.Pats [ SynPat.Paren(SynPat.Const(SynConst.Unit, range0), range0)], None, range0)
-        let binding = mkBinding range0 synPat expr
+        // create a `let func () = () ; expr` binding to force return type compatible with quotation type.
+        let seqExpr = SynExpr.Sequential(SequencePointsAtSeq, true, SynExpr.Const(SynConst.Unit, range0), expr, range0)
+        let binding = mkBinding range0 synPat seqExpr
         SynModuleDecl.Let(false, [binding], range0)
 
     let letBindingToParsedInput (decl : SynModuleDecl) =
