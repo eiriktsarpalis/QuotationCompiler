@@ -320,6 +320,23 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let callExpr,_ = List.fold foldApp (synMethod, 0) groupings
         callExpr
 
+    | TupleGet(tuple, idx) ->
+        let synTuple = exprToAst tuple
+        let arity = FSharpType.GetTupleElements(tuple.Type).Length
+        let ident = mkIdent range "_item"
+        let synIdent = SynExpr.Ident(ident)
+        let patterns = 
+            [ 
+                for i in 0 .. idx - 1 -> SynPat.Wild range
+                yield SynPat.Named(SynPat.Wild range, ident, false, None, range)
+                for i in idx + 1 .. arity - 1 -> SynPat.Wild range
+            ]
+
+        let synPat = SynPat.Tuple(patterns, range)
+        let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
+        let binding = SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, synPat, None, synTuple, range, SequencePointInfoForBinding.SequencePointAtBinding range)
+        SynExpr.LetOrUse(false, false, [binding], synIdent, range)
+
     | PropertyGet(instance, propertyInfo, []) ->
         match instance with
         | None -> sysMemberToSynMember range propertyInfo
@@ -401,7 +418,6 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | AddressSet(e,e') -> notImpl expr
     | DefaultValue(t) -> notImpl expr
     | NewDelegate(t, vars, body) -> notImpl expr
-    | TupleGet(inst, idx) -> notImpl expr
     | Quote e -> raise <| new NotSupportedException("nested quotations not supported")
     | _ -> notImpl expr
 

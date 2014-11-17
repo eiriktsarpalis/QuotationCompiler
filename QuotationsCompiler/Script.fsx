@@ -9,7 +9,8 @@ open QuotationsCompiler
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
         <@ 
-            [| 1 ; 2 ; 3 ; 4 ; 5 ; 6 |]
+            let t = box (1,2)
+            let (x,_) = unbox<int * int> t in x + 1
 //            let mutable x = 0
 //            while x < 10 do
 //                System.Console.WriteLine "test"
@@ -25,7 +26,6 @@ Test.compiledQuotation ()
 let tree = Ast.ofSourceString """
 module Foo
 
-let f () = [||]
+let f () = 
+    let (_,x,_) = (1,2) in x
 """
-
-<@ [||] : int [] @>
