@@ -8,12 +8,11 @@ open QuotationsCompiler
 
 let ast : ParsedInput = 
     Transformer.quotationToParsedInput 
-        <@ 
-            new Handler<int>(fun x y -> x.GetHashCode() + y |> ignore)
-//            let mutable x = 0
-//            while x < 10 do
-//                System.Console.WriteLine "test"
-//                x <- x + 1
+        <@
+            let mutable x = 0
+            while x < 10 do
+                System.Console.WriteLine "test"
+                x <- x + 1
         @>
 
 let err = Ast.compile "/Users/eirik/Desktop" [] [ast]
@@ -25,7 +24,5 @@ Test.compiledQuotation ()
 let tree = Ast.ofSourceString """
 module Foo
 
-type Foo = delegate of int -> int
-
-let f () = new Foo(fun x y -> x + y)
+let f () = printfn "%d" 12
 """

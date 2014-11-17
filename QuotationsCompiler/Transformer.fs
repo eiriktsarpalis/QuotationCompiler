@@ -233,7 +233,8 @@ let rec exprToAst (expr : Expr) : SynExpr =
     | Coerce(e, t) ->
         let synExpr = exprToAst e
         let synType = sysTypeToSynType range t
-        SynExpr.Upcast(synExpr, synType, range)
+        let uc = SynExpr.Upcast(synExpr, synType, range)
+        SynExpr.Paren(uc, range, None, range)
 
     | TypeTest(expr, t) ->
         let synExpr = exprToAst expr
@@ -242,8 +243,12 @@ let rec exprToAst (expr : Expr) : SynExpr =
 
     | NewObject(ctorInfo, args) ->
         let synType = sysTypeToSynType range ctorInfo.DeclaringType
-        let synArgs = List.map exprToAst args
-        let synParam = SynExpr.Tuple(synArgs, [], range)
+        let synParam =
+            match List.map exprToAst args with
+            | [] -> SynExpr.Const(SynConst.Unit, range)
+            | [a] -> SynExpr.Paren(a, range, None, range)
+            | synParams -> SynExpr.Tuple(synParams, [], range)
+
         SynExpr.New(false, synType, synParam, range)
 
     | NewTuple(args) ->
@@ -313,7 +318,7 @@ let rec exprToAst (expr : Expr) : SynExpr =
             let args =
                 match grouping with
                 | 0 -> SynExpr.Const(SynConst.Unit, range)
-                | 1 -> synArgs.[i]
+                | 1 -> SynExpr.Paren(synArgs.[i], range, None, range)
                 | _ -> SynExpr.Paren(SynExpr.Tuple(Array.toList <| synArgs.[i .. i + grouping], [], range), range, None, range)
 
             let funcExpr2 = SynExpr.App(ExprAtomicFlag.NonAtomic, false, funcExpr, args, range)
