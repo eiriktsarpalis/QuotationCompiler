@@ -250,6 +250,13 @@ let rec exprToAst (expr : Expr) : SynExpr =
         let synArgs = List.map exprToAst args
         SynExpr.Tuple(synArgs, [], range)
 
+    | NewArray(t, elems) ->
+        let synTy = sysTypeToSynType range t
+        let synArrayTy = SynType.Array(1, synTy, range)
+        let synElems = List.map exprToAst elems
+        let synArray = SynExpr.ArrayOrList(true, synElems, range)
+        SynExpr.Typed(synArray, synArrayTy, range)
+
     | NewRecord(ty, entries) ->
         let synTy = sysTypeToSynType range ty
         let fields = FSharpType.GetRecordFields(ty, BindingFlags.NonPublic ||| BindingFlags.Public) |> Array.toList
@@ -392,7 +399,6 @@ let rec exprToAst (expr : Expr) : SynExpr =
 
     | AddressOf e -> notImpl expr
     | AddressSet(e,e') -> notImpl expr
-    | NewArray(t, e) -> notImpl expr
     | DefaultValue(t) -> notImpl expr
     | NewDelegate(t, vars, body) -> notImpl expr
     | TupleGet(inst, idx) -> notImpl expr
