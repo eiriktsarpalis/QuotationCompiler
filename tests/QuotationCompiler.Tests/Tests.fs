@@ -6,6 +6,7 @@ open FsUnit
 open Microsoft.FSharp.Quotations
 
 let compile (e : Expr<'T>) = QuotationCompiler.ToFunc e
+let compileRun (e : Expr<'T>) = QuotationCompiler.ToFunc e ()
 
 
 [<Test>]
@@ -32,3 +33,16 @@ let ``1. Constant leaf`` () =
     testLeaf ()
     testLeaf [|1uy..100uy|]
     testLeaf [|1us..100us|]
+
+[<Test>]
+let ``1. List leaf`` () =
+    compileRun <@ [] : int list @> |> should equal List.empty<int>
+    compileRun <@ [1;2;3] @> |> should equal [1;2;3]
+    compileRun <@ 1 :: 2 :: 3 :: [] @> |> should equal [1;2;3]
+    compileRun <@ [1 .. 10] @> |> should equal [1..10]
+
+[<Test>]
+let ``1. Array leaf`` () =
+    compileRun <@ [||] : int [] @> |> should equal Array.empty<int>
+    compileRun <@ [|1;2;3|] @> |> should equal [|1;2;3|]
+    compileRun <@ [|1 .. 10|] @> |> should equal [|1..10|]
