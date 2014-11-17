@@ -50,7 +50,10 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="Utils.fs" />
+    <Compile Include="Pickle.fs" />
+    <Compile Include="Dependencies.fs" />
     <Compile Include="Transformer.fs" />
+    <Compile Include="QuotationsCompiler.fs" />
     <None Include="Script.fsx" />
     <Content Include="packages.config" />
     <Content Include="app.config" />
