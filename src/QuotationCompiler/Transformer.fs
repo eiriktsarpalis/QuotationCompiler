@@ -25,9 +25,10 @@ let convertExprToAst (expr : Expr) =
 
     let dependencies = ref Dependencies.Empty
     let append (t : Type) = dependencies := dependencies.Value.Append t
+    let defaultRange = defaultArg (tryParseRange expr) range0
 
     let rec exprToAst (expr : Expr) : SynExpr =
-        let range = defaultArg (tryParseRange expr) range0
+        let range = defaultArg (tryParseRange expr) defaultRange
         match expr with
         // parse for constants
         | Value(:? bool as b, t) when t = typeof<bool> -> SynExpr.Const(SynConst.Bool b, range)
@@ -199,9 +200,10 @@ let convertExprToAst (expr : Expr) =
         | UnionCaseTest(expr, uci) ->
             append uci.DeclaringType
             let synExpr = exprToAst expr
-            let uciIdent = SynPat.LongIdent(mkUciIdent range uci, None, None, SynConstructorArgs.Pats [], None, range)
-            let matchClause = SynMatchClause.Clause(uciIdent, None, SynExpr.Const(SynConst.Bool true, range0), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
-            let notMatchClause = SynMatchClause.Clause(SynPat.Wild range0, None, SynExpr.Const(SynConst.Bool false, range0), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
+            let ctorArgs = if uci.GetFields().Length = 0 then [] else [SynPat.Wild range]
+            let uciIdent = SynPat.LongIdent(mkUciIdent range uci, None, None, SynConstructorArgs.Pats ctorArgs, None, range)
+            let matchClause = SynMatchClause.Clause(uciIdent, None, SynExpr.Const(SynConst.Bool true, range), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
+            let notMatchClause = SynMatchClause.Clause(SynPat.Wild range, None, SynExpr.Const(SynConst.Bool false, range), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
             SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [matchClause ; notMatchClause], false, range)
 
         | Call(instance, methodInfo, args) ->
@@ -279,7 +281,7 @@ let convertExprToAst (expr : Expr) =
             match instance with
             | None -> 
                 let ident = sysMemberToSynMember range propertyInfo.DeclaringType
-                SynExpr.DotIndexedGet(ident, [synIndexer], range0, range0)
+                SynExpr.DotIndexedGet(ident, [synIndexer], range, range)
             | Some inst ->
                 let synInst = exprToAst inst
                 SynExpr.DotIndexedGet(synInst, [synIndexer], range, range)
@@ -351,15 +353,16 @@ let convertExprToAst (expr : Expr) =
         | _ -> notImpl expr
 
     let synExprToLetBinding (expr : SynExpr) =
-        let synPat = SynPat.LongIdent(mkLongIdent range0 [mkIdent range0 compiledFunctionName], None, None, SynConstructorArgs.Pats [ SynPat.Paren(SynPat.Const(SynConst.Unit, range0), range0)], None, range0)
+        let synConsArgs = SynConstructorArgs.Pats [ SynPat.Paren(SynPat.Const(SynConst.Unit, defaultRange), defaultRange)]
+        let synPat = SynPat.LongIdent(mkLongIdent defaultRange [mkIdent defaultRange compiledFunctionName], None, None, synConsArgs, None, defaultRange)
         // create a `let func () = () ; expr` binding to force return type compatible with quotation type.
-        let seqExpr = SynExpr.Sequential(SequencePointsAtSeq, true, SynExpr.Const(SynConst.Unit, range0), expr, range0)
-        let binding = mkBinding range0 synPat seqExpr
-        SynModuleDecl.Let(false, [binding], range0)
+        let seqExpr = SynExpr.Sequential(SequencePointsAtSeq, true, SynExpr.Const(SynConst.Unit, defaultRange), expr, defaultRange)
+        let binding = mkBinding defaultRange synPat seqExpr
+        SynModuleDecl.Let(false, [binding], defaultRange)
 
     let letBindingToParsedInput (decl : SynModuleDecl) =
-        let modl = SynModuleOrNamespace([mkIdent range0 moduleName], true, [decl], PreXmlDoc.Empty,[], None, range0)
-        let file = ParsedImplFileInput("/QuotationCompiler.fs", false, QualifiedNameOfFile(mkIdent range0 moduleName), [],[], [modl],false)
+        let modl = SynModuleOrNamespace([mkIdent defaultRange moduleName], true, [decl], PreXmlDoc.Empty,[], None, defaultRange)
+        let file = ParsedImplFileInput("/QuotationCompiler.fs", false, QualifiedNameOfFile(mkIdent defaultRange moduleName), [],[], [modl],false)
         ParsedInput.ImplFile file
 
     let synExpr = exprToAst expr

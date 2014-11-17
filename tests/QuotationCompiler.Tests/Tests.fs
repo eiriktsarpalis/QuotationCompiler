@@ -125,3 +125,84 @@ let ``2. Simple Lambda`` () =
 let ``2. Higher-order function`` () =
     let twice = compileRun <@ let twice (f : int -> int) = f << f in twice @>
     twice (fun x -> x + x) 1 |> should equal 4
+
+[<Test>]
+let ``2. Simple if-then-else`` () =
+    compileRun <@ if 101 % 2 = 1 then 25 + 17 else -1 @> |> should equal 42
+
+[<Test>]
+let ``2. Simple while loop`` () =
+    compileRun 
+        <@
+            let mutable x = 0
+            while x < 10 do x <- x + 1
+            x
+        @>
+    |> should equal 10
+
+[<Test>]
+let ``2. Simple numeric for loop`` () =
+    compileRun 
+        <@
+            let x = ref 0
+            for i = 1 to 10 do
+                incr x
+            !x
+        @>
+    |> should equal 10
+
+[<Test>]
+let ``2. Simple enumerating for loop`` () =
+    compileRun 
+        <@
+            let x = ref 0
+            for i in [1 .. 100] do
+                incr x
+            !x
+        @>
+    |> should equal 100
+
+[<Test>]
+let ``2. Simple try/with`` () =
+    compileRun
+        <@
+            try 1 / 0
+            with
+            | :? System.DivideByZeroException -> -1
+            | e -> -20
+        @>
+    |> should equal -1
+
+[<Test>]
+let ``2. Simple try/finally`` () =
+    let tester =
+        compileRun
+            <@
+                let test fail =
+                    let mutable isFinalized = false
+                    try
+                        try if fail then failwith "kaboom"
+                        finally
+                            isFinalized <- true
+                    with _ -> ()
+
+                    isFinalized
+
+                test
+            @>
+
+    tester true  |> should equal true
+    tester false |> should equal true
+
+[<Test>]
+let ``3. Tuple pattern match`` () =
+    compileRun <@ match (1,"1") with 1,"2" -> 1 | (1,"1") -> 2 | _ -> 3 @> |> should equal 2
+    compileRun <@ let (x,_) = (1,"") in x @> |> should equal 1
+    compileRun <@ match "lorem ipsum", 42, "test" with _,_,"test1" -> true | _ -> false @> |> should equal false
+
+[<Test>]
+let ``3. Union pattern match`` () =
+    compileRun <@ match None with Some 42 -> 1 | Some x -> x - 1 | None -> -1 @> |> should equal -1
+    compileRun <@ match Some (1,"test") with Some(2,"test") -> false | Some(1,"test") -> true | _ -> false @> |> should equal true
+    compileRun <@ match Some (Some(Some (42))) with None -> false | Some None -> false | Some (Some None) -> false | Some (Some (Some _)) -> true @> |> should equal true
+    compileRun <@ match Choice<int,int>.Choice1Of2 12 with Choice2Of2 _ -> 0 | Choice1Of2 i -> i @> |> should equal 12

@@ -32,7 +32,7 @@ type QuotationCompiler =
         let dependencies = assemblies |> List.map (fun a -> a.Location)
         let sscs = new SimpleSourceCodeServices()
         match sscs.CompileToDynamicAssembly([ast], assemblyName, dependencies, None, debug = false) with
-        | [||] , 0, Some a -> a
+        | _, _, Some a -> a
         | errors, _, _ -> failwithf "Compilation failed with errors %A." errors
 
     static member ToFunc(expr : Expr<'T>) : unit -> 'T =
