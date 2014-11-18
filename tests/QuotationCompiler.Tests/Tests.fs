@@ -201,6 +201,17 @@ let ``3. Tuple pattern match`` () =
     compileRun <@ match "lorem ipsum", 42, "test" with _,_,"test1" -> true | _ -> false @> |> should equal false
 
 [<Test>]
+let ``3. List pattern match`` () =
+    compileRun <@ match [42] with [] -> -1 | i :: [] -> i | _ -> -1 @> |> should equal 42
+    compileRun <@ match [41] with [] -> -1 | [3] -> 3 | [x] -> x + 1 | _ -> -1 @> |> should equal 42
+    compileRun <@ match [1;2;3] with [x;y;z] -> x + y + z | _ -> -1 @> |> should equal 6
+    compileRun <@ match [Some 2; None; Some 40] with [Some i; None; Some j] -> i + j | _ -> -1 @> |> should equal 42
+
+[<Test>]
+let ``3. Record pattern match`` () =
+    compileRun <@ match ref 42 with { contents = x } -> x @> |> should equal 42
+
+[<Test>]
 let ``3. Union pattern match`` () =
     compileRun <@ match None with Some 42 -> 1 | Some x -> x - 1 | None -> -1 @> |> should equal -1
     compileRun <@ match Some (1,"test") with Some(2,"test") -> false | Some(1,"test") -> true | _ -> false @> |> should equal true
