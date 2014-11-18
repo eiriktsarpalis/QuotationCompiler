@@ -31,27 +31,29 @@ let convertExprToAst (expr : Expr) =
         let range = defaultArg (tryParseRange expr) defaultRange
         match expr with
         // parse for constants
-        | Value(:? bool as b, t) when t = typeof<bool> -> SynExpr.Const(SynConst.Bool b, range)
-        | Value(:? byte as b, t) when t = typeof<byte> -> SynExpr.Const(SynConst.Byte b, range)
-        | Value(:? sbyte as b, t) when t = typeof<sbyte> -> SynExpr.Const(SynConst.SByte b, range)
-        | Value(:? char as c, t) when t = typeof<char> -> SynExpr.Const(SynConst.Char c, range)
-        | Value(:? decimal as d, t) when t = typeof<decimal> -> SynExpr.Const(SynConst.Decimal d, range)
-        | Value(:? int16 as i, t) when t = typeof<int16> -> SynExpr.Const(SynConst.Int16 i, range)
-        | Value(:? int32 as i, t) when t = typeof<int32> -> SynExpr.Const(SynConst.Int32 i, range)
-        | Value(:? int64 as i, t) when t = typeof<int64> -> SynExpr.Const(SynConst.Int64 i, range)
-        | Value(:? uint16 as i, t) when t = typeof<uint16> -> SynExpr.Const(SynConst.UInt16 i, range)
-        | Value(:? uint32 as i, t) when t = typeof<uint32> -> SynExpr.Const(SynConst.UInt32 i, range)
-        | Value(:? uint64 as i, t) when t = typeof<uint64> -> SynExpr.Const(SynConst.UInt64 i, range)
-        | Value(:? IntPtr as i, t) when t = typeof<IntPtr> -> SynExpr.Const(SynConst.IntPtr(int64 i), range)
-        | Value(:? UIntPtr as i, t) when t = typeof<UIntPtr> -> SynExpr.Const(SynConst.UIntPtr(uint64 i), range)
-        | Value(:? single as f, t) when t = typeof<single> -> SynExpr.Const(SynConst.Single f, range)
-        | Value(:? double as f, t) when t = typeof<double> -> SynExpr.Const(SynConst.Double f, range)
-        | Value(:? string as s, t) when t = typeof<string> -> SynExpr.Const(SynConst.String(s, range), range)
-        | Value(:? unit, t) when t = typeof<unit> -> SynExpr.Const(SynConst.Unit, range)
-        | Value(:? (byte[]) as bs, t) when t = typeof<byte[]> -> SynExpr.Const(SynConst.Bytes(bs, range), range)
-        | Value(:? (uint16[]) as is, t) when t = typeof<uint16[]> -> SynExpr.Const(SynConst.UInt16s is, range)
-        | Value (_,t) -> raise <| new NotSupportedException(sprintf "Quotation captures closure of type %O." t)
-        // Lambda
+        | Value(obj, t) ->
+            match obj with
+            | :? bool as b when t = typeof<bool> -> SynExpr.Const(SynConst.Bool b, range)
+            | :? byte as b when t = typeof<byte> -> SynExpr.Const(SynConst.Byte b, range)
+            | :? sbyte as b when t = typeof<sbyte> -> SynExpr.Const(SynConst.SByte b, range)
+            | :? char as c when t = typeof<char> -> SynExpr.Const(SynConst.Char c, range)
+            | :? decimal as d when t = typeof<decimal> -> SynExpr.Const(SynConst.Decimal d, range)
+            | :? int16 as i when t = typeof<int16> -> SynExpr.Const(SynConst.Int16 i, range)
+            | :? int32 as i when t = typeof<int32> -> SynExpr.Const(SynConst.Int32 i, range)
+            | :? int64 as i when t = typeof<int64> -> SynExpr.Const(SynConst.Int64 i, range)
+            | :? uint16 as i when t = typeof<uint16> -> SynExpr.Const(SynConst.UInt16 i, range)
+            | :? uint32 as i when t = typeof<uint32> -> SynExpr.Const(SynConst.UInt32 i, range)
+            | :? uint64 as i when t = typeof<uint64> -> SynExpr.Const(SynConst.UInt64 i, range)
+            | :? IntPtr as i when t = typeof<IntPtr> -> SynExpr.Const(SynConst.IntPtr(int64 i), range)
+            | :? UIntPtr as i when t = typeof<UIntPtr> -> SynExpr.Const(SynConst.UIntPtr(uint64 i), range)
+            | :? single as f when t = typeof<single> -> SynExpr.Const(SynConst.Single f, range)
+            | :? double as f when t = typeof<double> -> SynExpr.Const(SynConst.Double f, range)
+            | :? string as s when t = typeof<string> -> SynExpr.Const(SynConst.String(s, range), range)
+            | :? unit when t = typeof<unit> -> SynExpr.Const(SynConst.Unit, range)
+            | :? (byte[]) as bs when t = typeof<byte[]> -> SynExpr.Const(SynConst.Bytes(bs, range), range)
+            | :? (uint16[]) as is when t = typeof<uint16[]> -> SynExpr.Const(SynConst.UInt16s is, range)
+            | _ -> raise <| new NotSupportedException(sprintf "Quotation captures closure of type %O." t)
+
         | Var v ->
             append v.Type
             let ident = mkIdent range v.Name
@@ -214,7 +216,9 @@ let convertExprToAst (expr : Expr) =
             // for now, use a heuristic that happens to hold for FSharp.Core operators
             // but not user-defined values. These are not supported for now.
             let defaultGrouping =
-                if Array.isEmpty synArgs && methodInfo.ContainsAttribute<RequiresExplicitTypeArgumentsAttribute> () then []
+                if Array.isEmpty synArgs && 
+                    (methodInfo.ContainsAttribute<RequiresExplicitTypeArgumentsAttribute> ()
+                        || methodInfo.ContainsAttribute<GeneralizableValueAttribute> ()) then []
                 else [synArgs.Length]
 
             let groupings = defaultArg (tryGetCurriedFunctionGroupings methodInfo) defaultGrouping
@@ -223,7 +227,7 @@ let convertExprToAst (expr : Expr) =
                     match grouping with
                     | 0 -> SynExpr.Const(SynConst.Unit, range)
                     | 1 -> SynExpr.Paren(synArgs.[i], range, None, range)
-                    | _ -> SynExpr.Paren(SynExpr.Tuple(Array.toList <| synArgs.[i .. i + grouping], [], range), range, None, range)
+                    | _ -> SynExpr.Paren(SynExpr.Tuple(Array.toList <| synArgs.[i .. i + grouping - 1], [], range), range, None, range)
 
                 let funcExpr2 = SynExpr.App(ExprAtomicFlag.NonAtomic, false, funcExpr, args, range)
                 funcExpr2, i + grouping

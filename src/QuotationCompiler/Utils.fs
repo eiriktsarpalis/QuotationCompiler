@@ -52,7 +52,7 @@
             SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, pat, None, expr, range0, SequencePointInfoForBinding.SequencePointAtBinding range)
 
         let private moduleSuffixRegex = new Regex(@"^(.*)Module$", RegexOptions.Compiled)
-        let private fsharpPrefixRegex = new Regex(@"^FSharp(.*)`[0-9]+$", RegexOptions.Compiled)
+        let private fsharpPrefixRegex = new Regex(@"^FSharp(.*)(`[0-9]+)?$", RegexOptions.Compiled)
         let getFSharpName (m : MemberInfo) =
             match m.TryGetCustomAttribute<CompilationSourceNameAttribute> () with
             | Some a -> a.SourceName

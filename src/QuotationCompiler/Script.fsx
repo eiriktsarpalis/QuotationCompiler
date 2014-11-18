@@ -5,23 +5,24 @@
 open QuotationCompiler
 
 let f =
-    QuotationCompiler.ToFunc
-        <@ 
-            match Choice1Of2 12 with 
-            | Choice1Of2 i -> i
-            | _ -> 0
+    QuotationCompiler.ToFunc 
+        <@
+            match [2] with
+            | i :: [] when i = 2 -> true
+            | [] -> false
+            | _ -> false
         @>
+
+<@ async @>
 
 let ast =
     <@ 
-        match Choice1Of2 12 with 
-        | Choice1Of2 i -> i
-        | _ -> 0
+        match [2] with
+        | 2 :: [] -> true
+        | _ -> false
     @>
     |> QuotationCompiler.ToParsedInput 
     |> snd
-
-f ()
 
 
 let tree = Ast.ofSourceString """
@@ -46,25 +47,3 @@ type Foo =
     | Choice2Of2 2 -> 2
     | _ -> 0
 @>
-
-open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Quotations.Patterns
-open Microsoft.FSharp.Quotations.ExprShape
-
-let rec tryGetGetter (expr : Expr) =
-    match expr with
-    | PropertyGet(_,p,_) -> Some p
-    | ShapeVar _ -> None
-    | ShapeLambda(_,b) -> tryGetGetter b
-    | ShapeCombination(_,exprs) -> List.tryPick tryGetGetter exprs
-
-let item =
-    tryGetGetter 
-        <@ 
-            match Choice1Of2 12 with 
-            | Choice1Of2 i -> i
-            | _ -> 0
-        @>
-    |> Option.get
-
-item.DeclaringType

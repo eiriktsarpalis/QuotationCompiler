@@ -217,3 +217,46 @@ let ``3. Union pattern match`` () =
     compileRun <@ match Some (1,"test") with Some(2,"test") -> false | Some(1,"test") -> true | _ -> false @> |> should equal true
     compileRun <@ match Some (Some(Some (42))) with None -> false | Some None -> false | Some (Some None) -> false | Some (Some (Some _)) -> true @> |> should equal true
     compileRun <@ match Choice<int,int>.Choice1Of2 12 with Choice2Of2 _ -> 0 | Choice1Of2 i -> i @> |> should equal 12
+
+
+[<Test>]
+let ``4. Sequence builders`` () =
+    compileRun 
+        <@ 
+            seq { 
+                for i in 1 .. 100 do
+                    if i % 2 = 0 then
+                        yield i
+            }
+        @> 
+    |> Seq.length |> should equal 50
+
+[<Test>]
+let ``4. List builders`` () =
+    compileRun 
+        <@ 
+            [
+                for i in 1 .. 100 do
+                    if i % 2 = 0 then
+                        yield i
+            ]
+        @> 
+    |> List.length |> should equal 50
+
+[<Test>]
+let ``4. Async workflows`` () =
+    let fibAsync =
+        compileRun 
+            <@ 
+                let rec fibAsync n = async {
+                    if n <= 1 then return n
+                    else
+                        let! fnn = fibAsync(n-2)
+                        let! fn = fibAsync(n-1)
+                        return fnn + fn
+                }
+
+                fibAsync
+            @> 
+
+    fibAsync 10 |> Async.RunSynchronously |> should equal 55
