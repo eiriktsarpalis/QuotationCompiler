@@ -72,7 +72,6 @@ let ``1. Tuple leaf`` () =
     compileRun <@ (1,"2", Some 42, [1..2]) @> |> should equal (1,"2", Some 42, [1..2])
     compileRun <@ (1,"2", Some 42, [1..2], 1, 2, 3, 4, 5, 6, 7, 9, (1,100)) @> |> ignore
 
-
 [<Test>]
 let ``2. Simple let binding`` () =
     compileRun <@ let x = 1 + 1 in x + x @> |> should equal 4
@@ -136,6 +135,13 @@ let ``2. Simple Sequential`` () =
 [<Test>]
 let ``2. Simple Type test`` () =
     compileRun <@ match box 42 with :? string as t -> t | :? int as i -> string i | _ -> null @> |> should equal "42"
+
+[<Test>]
+let ``1. Simple Object`` () =
+    compileRun <@ let tc = new TestClass<int * string>((42, "test")) in tc.Value @> |> should equal (42, "test")
+    compileRun <@ let tc = new TestClass<int>(0) in tc.Value <- 42 ; tc.Value @> |> should equal 42
+    compileRun <@ let tc = new TestClass<int>(0) in tc.TestMethod 0 @> |> should equal (0,1)
+    compileRun <@ let tc = TestClass<int>.GenericMethod<int>(1,1) in tc.Value @> |> should equal (1,1)
 
 [<Test>]
 let ``2. Higher-order function`` () =
@@ -226,6 +232,8 @@ let ``3. List pattern match`` () =
 [<Test>]
 let ``3. Record pattern match`` () =
     compileRun <@ match ref 42 with { contents = x } -> x @> |> should equal 42
+    compileRun <@ match { Num = 1 ; Text = "test" ; Value = 2.1 } with { Value = v ; Num = n } -> float n + v @> |> should equal 3.1
+    compileRun <@ match { GNum = 1 ; GText = "test" ; GValue = 2.1 } with { GValue = v ; GNum = n } -> float n + v @> |> should equal 3.1
 
 [<Test>]
 let ``3. Union pattern match`` () =
@@ -234,6 +242,8 @@ let ``3. Union pattern match`` () =
     compileRun <@ match Some (Some(Some (42))) with None -> false | Some None -> false | Some (Some None) -> false | Some (Some (Some _)) -> true @> |> should equal true
     compileRun <@ match Choice<int,int>.Choice1Of2 12 with Choice2Of2 _ -> 0 | Choice1Of2 i -> i @> |> should equal 12
     compileRun <@ match Choice<string * int,int>.Choice1Of2("test", 42) with Choice2Of2 _ -> 0 | Choice1Of2("test", i) -> i | Choice1Of2 _ -> -1 @> |> should equal 42
+    compileRun <@ match B(42, "text") with B(i,_) -> i | _ -> -1 @> |> should equal 42
+    compileRun <@ match GA (15,27) with GA (i,j) -> i + j | _ -> -1 @> |> should equal 42
 
 [<Test>]
 let ``3. FSharp exceptions`` () =
