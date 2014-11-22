@@ -3,6 +3,7 @@
 open System
 open System.Reflection
 
+/// Quotation assembly dependency aggregator
 type Dependencies =
     {
         Index : Map<string, Assembly>

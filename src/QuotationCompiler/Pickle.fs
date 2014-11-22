@@ -39,8 +39,7 @@
         }
     with
         static member Create(value : obj, ty : Type) =
-            let id = sprintf "item_%s" <| Guid.NewGuid().ToString("N")
-            let ident = mkIdent range0 id
+            let ident = mkUniqueIdentifier range0
             let synPat = SynPat.Named(SynPat.Wild range0, ident, false, Some SynAccess.Private, range0)
             let expr = Pickler.SynCache ty value
             let binding = SynModuleDecl.Let(false, [mkBinding range0 synPat expr], range0)

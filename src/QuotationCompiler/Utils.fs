@@ -63,6 +63,11 @@
             let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
             SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, pat, None, expr, range0, SequencePointInfoForBinding.SequencePointAtBinding range)
 
+        let mkUniqueIdentifier range =
+            let suffix = Guid.NewGuid().ToString("N")
+            let name = "_bind_" + suffix
+            mkIdent range name
+
         let private moduleSuffixRegex = new Regex(@"^(.*)Module$", RegexOptions.Compiled)
         let private fsharpPrefixRegex = new Regex(@"^FSharp(.*)(`[0-9]+)?$", RegexOptions.Compiled)
         /// recover the F# source name for given member declaration

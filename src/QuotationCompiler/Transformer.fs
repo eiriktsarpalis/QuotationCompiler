@@ -21,6 +21,7 @@ let moduleName = "QuotationCompiler"
 [<Literal>]
 let compiledFunctionName = "compiledQuotation"
 
+/// Converts provided quotation to an untyped F# AST
 let convertExprToAst (expr : Expr) =
 
     let dependencies = ref Dependencies.Empty
@@ -286,7 +287,7 @@ let convertExprToAst (expr : Expr) =
         | TupleGet(tuple, idx) ->
             let synTuple = exprToAst tuple
             let arity = FSharpType.GetTupleElements(tuple.Type).Length
-            let ident = mkIdent range "_item"
+            let ident = mkUniqueIdentifier range
             let synIdent = SynExpr.Ident(ident)
             let patterns = 
                 [ 
@@ -303,7 +304,7 @@ let convertExprToAst (expr : Expr) =
             append uci.DeclaringType
             let synInstance = exprToAst instance
             let synTy = sysTypeToSynType range prop.PropertyType
-            let ident = mkIdent range "_item"
+            let ident = mkUniqueIdentifier range
             let untypedPat = SynPat.Named(SynPat.Wild range, ident, false, None, range)
             let typedPat = SynPat.Typed(untypedPat, synTy, range)
             let patterns =
