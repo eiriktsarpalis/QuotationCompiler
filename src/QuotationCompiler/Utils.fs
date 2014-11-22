@@ -31,6 +31,11 @@
 
             member m.Assembly = match m with :? Type as t -> t.Assembly | _ -> m.DeclaringType.Assembly
 
+            member m.GetCompilationRepresentationFlags() =
+                match m.TryGetCustomAttribute<CompilationRepresentationAttribute>() with
+                | None -> CompilationRepresentationFlags.None
+                | Some attr -> attr.Flags
+
         let tryParseRange (expr : Expr) =
             match expr.CustomAttributes with
             | [ NewTuple [_; NewTuple [ Value (:? string as file, _); 

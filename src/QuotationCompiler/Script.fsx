@@ -6,9 +6,8 @@ open QuotationCompiler
 
 let f =
     QuotationCompiler.ToFunc 
-        <@ 
-            try raise <| MatchFailureException ("asda", 12, 12) 
-            with MatchFailureException(_,_,x) -> x 
+        <@
+            null : string
         @>
 
 let ast =
@@ -24,5 +23,5 @@ let ast =
 let tree = Ast.ofSourceString """
 module Foo
     
-let x =  Foo(1,2)
+let x = "" = null
 """

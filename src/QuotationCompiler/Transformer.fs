@@ -52,6 +52,10 @@ let convertExprToAst (expr : Expr) =
             | :? unit when t = typeof<unit> -> SynExpr.Const(SynConst.Unit, range)
             | :? (byte[]) as bs when t = typeof<byte[]> -> SynExpr.Const(SynConst.Bytes(bs, range), range)
             | :? (uint16[]) as is when t = typeof<uint16[]> -> SynExpr.Const(SynConst.UInt16s is, range)
+            // null literal support
+            | null when not <| t.GetCompilationRepresentationFlags().HasFlag CompilationRepresentationFlags.UseNullAsTrueValue ->
+                let synTy = sysTypeToSynType range t
+                SynExpr.Typed(SynExpr.Null range, synTy, range)
             | _ -> raise <| new NotSupportedException(sprintf "Quotation captures closure of type %O." t)
 
         | Var v ->

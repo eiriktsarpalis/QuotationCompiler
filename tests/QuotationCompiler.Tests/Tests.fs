@@ -47,6 +47,10 @@ let ``1. Array leaf`` () =
     compileRun <@ [|1 .. 10|] @> |> should equal [|1..10|]
 
 [<Test>]
+let ``1. Null literal leaf`` () =
+    compileRun <@ null : string @> |> should equal null
+
+[<Test>]
 let ``1. Union leaf`` () =
     compileRun <@ None : int option @> |> should equal Option<int>.None
     compileRun <@ Some (1,"lorem ipsum") @> |> should equal (Some (1,"lorem ipsum"))
@@ -119,6 +123,18 @@ let ``2. Simple Lambda`` () =
     f 0 |> should equal 1
     let g = compileRun <@ fun x y -> x * y @>
     g 2 2 |> should equal 4
+
+[<Test>]
+let ``2. Simple Coercion`` () =
+    compileRun <@ () :> obj :?> int option @> |> should equal None
+
+[<Test>]
+let ``2. Simple Sequential`` () =
+    compileRun <@ let x = ref 0 in incr x ; !x @> |> should equal 1
+
+[<Test>]
+let ``2. Simple Type test`` () =
+    compileRun <@ match box 42 with :? string as t -> t | :? int as i -> string i | _ -> null @> |> should equal "42"
 
 [<Test>]
 let ``2. Higher-order function`` () =
