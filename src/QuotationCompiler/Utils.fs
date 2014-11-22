@@ -16,6 +16,12 @@
 
         let inline notImpl<'T> e : 'T = raise <| new NotImplementedException(sprintf "%O" e)
 
+        let isListType (t : Type) =
+            t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<list<_>>
+
+        let isOptionType (t : Type) =
+            t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<option<_>>
+
         let wrapDelegate<'Dele when 'Dele :> Delegate> (m : MethodInfo) =
             Delegate.CreateDelegate(typeof<'Dele>, m) :?> 'Dele
 
@@ -36,6 +42,7 @@
                 | None -> CompilationRepresentationFlags.None
                 | Some attr -> attr.Flags
 
+        /// build a range value parsing the Expr.CustomAttributes property.
         let tryParseRange (expr : Expr) =
             match expr.CustomAttributes with
             | [ NewTuple [_; NewTuple [ Value (:? string as file, _); 
@@ -58,6 +65,7 @@
 
         let private moduleSuffixRegex = new Regex(@"^(.*)Module$", RegexOptions.Compiled)
         let private fsharpPrefixRegex = new Regex(@"^FSharp(.*)(`[0-9]+)?$", RegexOptions.Compiled)
+        /// recover the F# source name for given member declaration
         let getFSharpName (m : MemberInfo) =
             match m.TryGetCustomAttribute<CompilationSourceNameAttribute> () with
             | Some a -> a.SourceName
@@ -80,6 +88,7 @@
                     m.Name
             | _ -> m.Name.Split('`').[0]
 
+        /// generate full path for given memberinfo
         let getMemberPath range (m : MemberInfo) =
             let rec aux (m : MemberInfo) = seq {
                 match m.DeclaringType with
@@ -91,12 +100,7 @@
 
             aux m |> Seq.map (mkIdent range) |> Seq.toList
 
-        let isListType (t : Type) =
-            t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<list<_>>
-
-        let isOptionType (t : Type) =
-            t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<option<_>>
-
+        /// converts a System.Type to a F# compiler SynType expression
         let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
             if FSharpType.IsTuple t then
                 let telems = 
@@ -121,10 +125,12 @@
                 let liwd = LongIdentWithDots(getMemberPath range t, [range])
                 SynType.LongIdent liwd
 
+        /// creates a union case identifier
         let mkUciIdent range (uci : UnionCaseInfo) =
             let path = getMemberPath range uci.DeclaringType
             LongIdentWithDots(path @ [mkIdent range uci.Name], [range])
 
+        /// creates a union case constructor expression
         let mkUciCtor range (uci : UnionCaseInfo) =
             if uci.DeclaringType.IsGenericType then
                 let synUnion = SynExpr.LongIdent(false, mkLongIdent range (getMemberPath range uci.DeclaringType), None, range)
@@ -134,15 +140,21 @@
             else
                 SynExpr.LongIdent(false, mkUciIdent range uci, None, range)
 
+        /// recover curried function argument groupings for given method declaration
         let tryGetCurriedFunctionGroupings (m : MethodInfo) =
             match m.TryGetCustomAttribute<CompilationArgumentCountsAttribute> () with
             | None -> None
             | Some a -> Some(a.Counts |> Seq.toList)
 
+        /// converts a System.Reflection.MemberInfo to an SynExpr identifier
         let sysMemberToSynMember range (m : MemberInfo) =
             let liwd = LongIdentWithDots(getMemberPath range m, [range])
             SynExpr.LongIdent(false, liwd, None, range)
 
+        /// recognizes bindings to union case fields in pattern matches
+        /// Quotations directly access propertyInfo instances, which are
+        /// not public. Recovers union metadata required for a proper pattern match expression
+        /// in the F# ast.
         let (|UnionCasePropertyGet|_|) (expr : Expr) =
             match expr with
             | PropertyGet(Some inst, propertyInfo, []) when FSharpType.IsUnion propertyInfo.DeclaringType ->
@@ -153,8 +165,9 @@
                         if isList then
                             FSharpType.GetUnionCases(propertyInfo.DeclaringType).[1]
                         else
-                            let instance = System.Runtime.Serialization.FormatterServices.GetUninitializedObject propertyInfo.DeclaringType
-                            let uci,_ = FSharpValue.GetUnionFields(instance, propertyInfo.DeclaringType, true)
+                            // create a dummy instance for declaring type to recover union case info
+                            let dummy = System.Runtime.Serialization.FormatterServices.GetUninitializedObject propertyInfo.DeclaringType
+                            let uci,_ = FSharpValue.GetUnionFields(dummy, propertyInfo.DeclaringType, true)
                             uci
 
                     let flds = uci.GetFields()

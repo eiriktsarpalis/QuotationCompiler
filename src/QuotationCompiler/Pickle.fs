@@ -1,5 +1,9 @@
 ﻿module internal QuotationCompiler.Pickle
 
+    //
+    //  Pickling support for values captured in quotations; work in progress
+    //
+
     open System
     open System.IO
     open System.Collections.Generic
