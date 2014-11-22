@@ -4,24 +4,24 @@
 
 open QuotationCompiler
 
+#r "/Users/eirik/Desktop/test.dll"
+
 let f =
     QuotationCompiler.ToFunc 
         <@
-            null : string
+            Test.Foo.A 42 : Test.Foo<System.Int32>
         @>
 
 let ast =
     <@ 
-        match Choice<int,int>.Choice1Of2 12 with 
-        | Choice1Of2 i -> i 
-        | _ -> -1 
+        Test.Foo.A 42 : Test.Foo<System.Int32> 
     @>
-    |> QuotationCompiler.ToParsedInput 
-    |> snd
+    |> QuotationCompiler.ToParsedInput
+    |> fst
 
 
 let tree = Ast.ofSourceString """
 module Foo
     
-let x = "" = null
+let x = Test.Foo.A 42
 """

@@ -56,20 +56,21 @@ let ``1. Union leaf`` () =
     compileRun <@ Some (1,"lorem ipsum") @> |> should equal (Some (1,"lorem ipsum"))
     compileRun <@ Choice1Of2 "value" : Choice<string,exn> @> |> should equal (Choice<string,exn>.Choice1Of2 "value")
     compileRun <@ Choice1Of2 "value" : Choice<string,exn> @> |> should equal (Choice<string,exn>.Choice1Of2 "value")
-//    compileRun <@ A @> |> should equal A
-//    compileRun <@ B(42, "lorem ipsum") @> |> should equal (B(42, "lorem ipsum"))
-//    compileRun <@ GA (1,1) @> |> should equal (GA(1,1))
+    compileRun <@ A @> |> should equal A
+    compileRun <@ B(42, "lorem ipsum") @> |> should equal (B(42, "lorem ipsum"))
+    compileRun <@ GA (1,1) @> |> should equal (GA(1,1))
 
 [<Test>]
 let ``1. Record leaf`` () =
     compileRun <@ { contents = 42 } @> |> should equal (ref 42)
-//    compileRun <@ { Num = 42 ; Text = "text" ; Value = 3. } @> |> should equal { Num = 42 ; Text = "text" ; Value = 3. }
-//    compileRun <@ { GNum = 42 ; GText = "text" ; GValue = Some 3. } @> |> should equal { GNum = 42 ; GText = "text" ; GValue = Some 3. }
+    compileRun <@ { Num = 42 ; Text = "text" ; Value = 3. } @> |> should equal { Num = 42 ; Text = "text" ; Value = 3. }
+    compileRun <@ { GNum = 42 ; GText = "text" ; GValue = Some 3. } @> |> should equal { GNum = 42 ; GText = "text" ; GValue = Some 3. }
 
 [<Test>]
 let ``1. Tuple leaf`` () =
     compileRun <@ (1,"2") @> |> should equal (1,"2")
     compileRun <@ (1,"2", Some 42, [1..2]) @> |> should equal (1,"2", Some 42, [1..2])
+    compileRun <@ (1,"2", Some 42, [1..2], 1, 2, 3, 4, 5, 6, 7, 9, (1,100)) @> |> ignore
 
 
 [<Test>]

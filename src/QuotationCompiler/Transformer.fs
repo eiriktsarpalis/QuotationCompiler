@@ -16,7 +16,7 @@ open Microsoft.FSharp.Compiler.Range
 open QuotationCompiler.Dependencies
 
 [<Literal>]
-let moduleName = "QuotationCompiler"
+let moduleName = "CompiledQuotationContainer"
 
 [<Literal>]
 let compiledFunctionName = "compiledQuotation"
@@ -194,14 +194,18 @@ let convertExprToAst (expr : Expr) =
 
         | NewUnionCase(uci, args) ->
             append uci.DeclaringType
-            let uciCtor = mkUciCtor range uci
+            let synTy = sysTypeToSynType range uci.DeclaringType
+            let uciCtor = SynExpr.LongIdent(false, mkUciIdent range uci, None, range)
             let synArgs = List.map exprToAst args
-            match synArgs with
-            | [] -> uciCtor
-            | [a] -> SynExpr.App(ExprAtomicFlag.Atomic, false, uciCtor, a, range)
-            | _ ->
-                let synParam = SynExpr.Tuple(synArgs, [], range)
-                SynExpr.App(ExprAtomicFlag.Atomic, false, uciCtor, synParam, range)
+            let ctorExpr =
+                match synArgs with
+                | [] -> uciCtor
+                | [a] -> SynExpr.App(ExprAtomicFlag.Atomic, false, uciCtor, a, range)
+                | _ ->
+                    let synParam = SynExpr.Tuple(synArgs, [], range)
+                    SynExpr.App(ExprAtomicFlag.Atomic, false, uciCtor, synParam, range)
+
+            SynExpr.Typed(ctorExpr, synTy, range)
 
         | NewDelegate(t, vars, body) ->
             append t

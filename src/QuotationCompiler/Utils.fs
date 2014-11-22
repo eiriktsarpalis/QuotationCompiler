@@ -97,7 +97,10 @@
         let getMemberPath range (m : MemberInfo) =
             let rec aux (m : MemberInfo) = seq {
                 match m.DeclaringType with
-                | null -> yield! (m :?> Type).Namespace.Split('.') 
+                | null -> 
+                    match (m :?> Type).Namespace with
+                    | null -> ()
+                    | ns -> yield! ns.Split('.') 
                 | dt -> yield! aux dt 
         
                 yield getFSharpName m
@@ -134,16 +137,6 @@
         let mkUciIdent range (uci : UnionCaseInfo) =
             let path = getMemberPath range uci.DeclaringType
             LongIdentWithDots(path @ [mkIdent range uci.Name], [range])
-
-        /// creates a union case constructor expression
-        let mkUciCtor range (uci : UnionCaseInfo) =
-            if uci.DeclaringType.IsGenericType then
-                let synUnion = SynExpr.LongIdent(false, mkLongIdent range (getMemberPath range uci.DeclaringType), None, range)
-                let synArgs = uci.DeclaringType.GetGenericArguments() |> Seq.map (sysTypeToSynType range) |> Seq.toList
-                let unionTy = SynExpr.TypeApp(synUnion, range, synArgs, [range], None, range, range)
-                SynExpr.DotGet(unionTy, range, mkLongIdent range [mkIdent range uci.Name], range)
-            else
-                SynExpr.LongIdent(false, mkUciIdent range uci, None, range)
 
         /// recover curried function argument groupings for given method declaration
         let tryGetCurriedFunctionGroupings (m : MethodInfo) =
