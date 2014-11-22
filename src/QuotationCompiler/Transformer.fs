@@ -125,12 +125,29 @@ let convertExprToAst (expr : Expr) =
             let synBody = exprToAst body
             SynExpr.While(SequencePointAtWhileLoop range, synCond, synBody, range)
 
+        // Adapt F# exception constructors to F# idiomatic syntax
+        | Coerce(NewObject(ctor, args), t) when t = typeof<exn> && FSharpType.IsExceptionRepresentation ctor.DeclaringType ->
+            let exnTy = ctor.DeclaringType
+            append exnTy
+            let synExn = sysMemberToSynMember range exnTy
+            match List.map exprToAst args with
+            | [] -> synExn
+            | [arg] -> SynExpr.App(ExprAtomicFlag.NonAtomic, false, synExn, arg, range)
+            | args ->
+                let paren = SynExpr.Tuple(args, [], range)
+                SynExpr.App(ExprAtomicFlag.NonAtomic, false, synExn, paren, range)
+
         | Coerce(e, t) ->
             append t
             let synExpr = exprToAst e
             let synType = sysTypeToSynType range t
-            let uc = SynExpr.Upcast(synExpr, synType, range)
-            SynExpr.Paren(uc, range, None, range)
+            let synCoerce =
+                if t.IsAssignableFrom e.Type then
+                    SynExpr.Upcast(synExpr, synType, range)
+                else
+                    SynExpr.Downcast(synExpr, synType, range)
+
+            SynExpr.Paren(synCoerce, range, None, range)
 
         | TypeTest(expr, t) ->
             append t

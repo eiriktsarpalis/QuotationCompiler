@@ -10,7 +10,6 @@ open QuotationCompiler
 let compile (e : Expr<'T>) = QuotationCompiler.ToFunc e
 let compileRun (e : Expr<'T>) = QuotationCompiler.ToFunc e ()
 
-
 [<Test>]
 let ``1. Constant leaf`` () =
     let testLeaf value = compileRun <@ value @> |> should equal value
@@ -219,6 +218,9 @@ let ``3. Union pattern match`` () =
     compileRun <@ match Choice<int,int>.Choice1Of2 12 with Choice2Of2 _ -> 0 | Choice1Of2 i -> i @> |> should equal 12
     compileRun <@ match Choice<string * int,int>.Choice1Of2("test", 42) with Choice2Of2 _ -> 0 | Choice1Of2("test", i) -> i | Choice1Of2 _ -> -1 @> |> should equal 42
 
+[<Test>]
+let ``3. FSharp exceptions`` () =
+    compileRun <@ try raise <| MatchFailureException ("test", 17, 25) with MatchFailureException(_,i,j) -> i + j @> |> should equal 42
 
 [<Test>]
 let ``4. Sequence builders`` () =
