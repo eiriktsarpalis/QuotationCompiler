@@ -62,6 +62,8 @@
             if m.Assembly = typeof<int option>.Assembly && fsharpPrefixRegex.IsMatch m.Name then
                 let rm = fsharpPrefixRegex.Match m.Name
                 rm.Groups.[1].Value
+            elif m.Name = "DefaultAsyncBuilder" && m.Assembly = typeof<int option>.Assembly then
+                "async"
             else
 
             match m, m.TryGetCustomAttribute<CompilationRepresentationAttribute> () with

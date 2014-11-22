@@ -9,9 +9,7 @@ let f =
         <@ 
             match Choice<int,int>.Choice1Of2 12 with 
             | Choice1Of2 i -> i 
-            | _ -> -1 
         @>
-
 
 f ()
 
