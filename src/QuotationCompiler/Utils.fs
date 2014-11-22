@@ -83,6 +83,12 @@
 
             aux m |> Seq.map (mkIdent range) |> Seq.toList
 
+        let isListType (t : Type) =
+            t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<list<_>>
+
+        let isOptionType (t : Type) =
+            t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<option<_>>
+
         let rec sysTypeToSynType (range : range) (t : System.Type) : SynType =
             if FSharpType.IsTuple t then
                 let telems = 
@@ -128,3 +134,24 @@
         let sysMemberToSynMember range (m : MemberInfo) =
             let liwd = LongIdentWithDots(getMemberPath range m, [range])
             SynExpr.LongIdent(false, liwd, None, range)
+
+        let (|UnionCasePropertyGet|_|) (expr : Expr) =
+            match expr with
+            | PropertyGet(Some inst, propertyInfo, []) when FSharpType.IsUnion propertyInfo.DeclaringType ->
+                if isOptionType propertyInfo.DeclaringType then None
+                else
+                    let isList = isListType propertyInfo.DeclaringType
+                    let uci = 
+                        if isList then
+                            FSharpType.GetUnionCases(propertyInfo.DeclaringType).[1]
+                        else
+                            let instance = System.Runtime.Serialization.FormatterServices.GetUninitializedObject propertyInfo.DeclaringType
+                            let uci,_ = FSharpValue.GetUnionFields(instance, propertyInfo.DeclaringType, true)
+                            uci
+
+                    let flds = uci.GetFields()
+                    assert(flds.Length > 0)
+                    match flds |> Array.tryFindIndex (fun p -> p = propertyInfo) with
+                    | Some i -> Some(inst, isList, uci, propertyInfo, i, flds.Length)
+                    | None -> None
+            | _ -> None

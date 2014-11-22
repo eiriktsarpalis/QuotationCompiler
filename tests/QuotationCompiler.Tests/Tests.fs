@@ -217,6 +217,7 @@ let ``3. Union pattern match`` () =
     compileRun <@ match Some (1,"test") with Some(2,"test") -> false | Some(1,"test") -> true | _ -> false @> |> should equal true
     compileRun <@ match Some (Some(Some (42))) with None -> false | Some None -> false | Some (Some None) -> false | Some (Some (Some _)) -> true @> |> should equal true
     compileRun <@ match Choice<int,int>.Choice1Of2 12 with Choice2Of2 _ -> 0 | Choice1Of2 i -> i @> |> should equal 12
+    compileRun <@ match Choice<string * int,int>.Choice1Of2("test", 42) with Choice2Of2 _ -> 0 | Choice1Of2("test", i) -> i | Choice1Of2 _ -> -1 @> |> should equal 42
 
 
 [<Test>]

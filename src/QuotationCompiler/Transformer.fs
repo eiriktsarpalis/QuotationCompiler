@@ -202,9 +202,21 @@ let convertExprToAst (expr : Expr) =
         | UnionCaseTest(expr, uci) ->
             append uci.DeclaringType
             let synExpr = exprToAst expr
-            let ctorArgs = if uci.GetFields().Length = 0 then [] else [SynPat.Wild range]
-            let uciIdent = SynPat.LongIdent(mkUciIdent range uci, None, None, SynConstructorArgs.Pats ctorArgs, None, range)
-            let matchClause = SynMatchClause.Clause(uciIdent, None, SynExpr.Const(SynConst.Bool true, range), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
+            let ctorPat =
+                if isListType uci.DeclaringType then
+                    // list pattern match requires special syntax
+                    if uci.Name = "Empty" then
+                        SynPat.ArrayOrList(false, [], range)
+                    else // Cons
+                        let uciIdent = mkLongIdent range [mkIdent range "op_ColonColon"]
+                        let pats = SynPat.Tuple([SynPat.Wild range ; SynPat.Wild range], range)
+                        SynPat.LongIdent(uciIdent, None, None, SynConstructorArgs.Pats [pats], None, range)
+                else
+                    let uciIdent = mkUciIdent range uci
+                    let ctorArgs = if uci.GetFields().Length = 0 then [] else [SynPat.Wild range]
+                    SynPat.LongIdent(uciIdent, None, None, SynConstructorArgs.Pats ctorArgs, None, range)
+
+            let matchClause = SynMatchClause.Clause(ctorPat, None, SynExpr.Const(SynConst.Bool true, range), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
             let notMatchClause = SynMatchClause.Clause(SynPat.Wild range, None, SynExpr.Const(SynConst.Bool false, range), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
             SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [matchClause ; notMatchClause], false, range)
 
@@ -266,6 +278,37 @@ let convertExprToAst (expr : Expr) =
             let binding = mkBinding range synPat synTuple
             SynExpr.LetOrUse(false, false, [binding], synIdent, range)
 
+        | UnionCasePropertyGet(instance, isList, uci, prop, pos, fieldCount) ->
+            append uci.DeclaringType
+            let synInstance = exprToAst instance
+            let synTy = sysTypeToSynType range prop.PropertyType
+            let ident = mkIdent range "_item"
+            let untypedPat = SynPat.Named(SynPat.Wild range, ident, false, None, range)
+            let typedPat = SynPat.Typed(untypedPat, synTy, range)
+            let patterns =
+                [
+                    for i in 0 .. pos - 1 -> SynPat.Wild range
+                    yield typedPat
+                    for i in pos + 1 .. fieldCount - 1 -> SynPat.Wild range
+                ]
+
+            let synPat = 
+                match patterns with
+                | [p] -> p
+                | ps -> SynPat.Tuple(ps, range)
+
+            let uciIdent =
+                if isList then
+                    mkLongIdent range [mkIdent range "op_ColonColon"]
+                else
+                    mkUciIdent range uci
+
+            let matchPat = SynPat.LongIdent(uciIdent, None, None, SynConstructorArgs.Pats [synPat], None, range)
+            let matchClause = SynMatchClause.Clause(matchPat, None, SynExpr.Ident ident, range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
+            let synFailwith = SynExpr.App(ExprAtomicFlag.NonAtomic, false, SynExpr.Ident(mkIdent range0 "failwith"), SynExpr.Const(SynConst.String("impossible", range0), range0), range0)
+            let notMatchClause = SynMatchClause.Clause(SynPat.Wild range, None, synFailwith, range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
+            SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synInstance, [matchClause ; notMatchClause], false, range)
+            
         | PropertyGet(instance, propertyInfo, []) ->
             append propertyInfo.DeclaringType
             match instance with
