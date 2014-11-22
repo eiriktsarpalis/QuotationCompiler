@@ -237,6 +237,8 @@ let ``3. Union pattern match`` () =
 
 [<Test>]
 let ``3. FSharp exceptions`` () =
+    compileRun <@ try raise FSharpException1 with FSharpException1 -> true | _ -> false @> |> should equal true
+    compileRun <@ try raise <| FSharpException2 "test" with FSharpException1 -> "" | FSharpException2 t -> t @> |> should equal "test"
     compileRun <@ try raise <| MatchFailureException ("test", 17, 25) with MatchFailureException(_,i,j) -> i + j @> |> should equal 42
 
 [<Test>]

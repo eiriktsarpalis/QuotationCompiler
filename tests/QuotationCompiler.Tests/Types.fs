@@ -22,3 +22,6 @@ type TestGenericRecord<'T> =
         GText : string
         GValue : 'T
     }
+
+exception FSharpException1
+exception FSharpException2 of string
