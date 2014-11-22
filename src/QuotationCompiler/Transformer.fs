@@ -163,8 +163,10 @@ let convertExprToAst (expr : Expr) =
         | NewObject(ctorInfo, args) ->
             append ctorInfo.DeclaringType
             let synType = sysTypeToSynType range ctorInfo.DeclaringType
+            let synArgs = List.map exprToAst args
+            let paramInfo = ctorInfo.GetOptionalParameterInfo()
             let synParam =
-                match List.map exprToAst args with
+                match List.map2 (mkArgumentBinding range) paramInfo synArgs with
                 | [] -> SynExpr.Const(SynConst.Unit, range)
                 | [a] -> SynExpr.Paren(a, range, None, range)
                 | synParams -> SynExpr.Tuple(synParams, [], range)
@@ -248,7 +250,9 @@ let convertExprToAst (expr : Expr) =
 
         | Call(instance, methodInfo, args) ->
             append methodInfo.DeclaringType
-            let synArgs = List.map exprToAst args |> List.toArray
+            let synArgs = List.map exprToAst args
+            let paramInfo = methodInfo.GetOptionalParameterInfo()
+            let synArgs = List.map2 (mkArgumentBinding range) paramInfo synArgs |> List.toArray
             // TODO : need a way to identify F# 'generic values', i.e. typeof<'T>
             // it seems that the only way to do this is by parsing F# assembly signature metadata
             // for now, use a heuristic that happens to hold for FSharp.Core operators

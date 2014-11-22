@@ -9,19 +9,20 @@ open QuotationCompiler
 let f =
     QuotationCompiler.ToFunc 
         <@
-            Test.Foo.A 42 : Test.Foo<System.Int32>
+            Async.RunSynchronously(async { return 42})
         @>
+
+f ()
 
 let ast =
     <@ 
-        Test.Foo.A 42 : Test.Foo<System.Int32> 
+        Async.RunSynchronously(async { return 42})
     @>
     |> QuotationCompiler.ToParsedInput
-    |> fst
-
+    |> snd
 
 let tree = Ast.ofSourceString """
 module Foo
     
-let x = Test.Foo.A 42
+let x = Test.Foo(?name = None)
 """

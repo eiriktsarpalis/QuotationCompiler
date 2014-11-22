@@ -288,7 +288,7 @@ let ``4. Async workflows`` () =
                         return fnn + fn
                 }
 
-                fibAsync
+                Async.RunSynchronously << fibAsync
             @> 
 
-    fibAsync 10 |> Async.RunSynchronously |> should equal 55
+    fibAsync 10 |> should equal 55

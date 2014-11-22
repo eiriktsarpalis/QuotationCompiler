@@ -42,6 +42,15 @@
                 | None -> CompilationRepresentationFlags.None
                 | Some attr -> attr.Flags
 
+        type MethodBase with
+            member m.GetOptionalParameterInfo () =
+                m.GetParameters()
+                |> Seq.map (fun p -> 
+                    if p.GetCustomAttributes<OptionalArgumentAttribute>() |> Seq.isEmpty then None
+                    else
+                        Some p.Name)
+                |> Seq.toList
+
         /// build a range value parsing the Expr.CustomAttributes property.
         let tryParseRange (expr : Expr) =
             match expr.CustomAttributes with
@@ -62,6 +71,15 @@
         let inline mkBinding range pat expr =
             let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
             SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, pat, None, expr, range0, SequencePointInfoForBinding.SequencePointAtBinding range)
+
+        let mkArgumentBinding range optName synParam =
+            match optName with
+            | None -> synParam
+            | Some name -> 
+                let equality = SynExpr.Ident(mkIdent range "op_Equality")
+                let ident = SynExpr.LongIdent(true, mkLongIdent range [mkIdent range name], None, range)
+                let innerApp = SynExpr.App(ExprAtomicFlag.NonAtomic, true, equality, ident, range)
+                SynExpr.App(ExprAtomicFlag.NonAtomic, false, innerApp, synParam, range)
 
         let mkUniqueIdentifier range =
             let suffix = Guid.NewGuid().ToString("N")
