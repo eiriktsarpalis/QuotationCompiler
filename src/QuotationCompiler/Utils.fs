@@ -59,6 +59,7 @@
             | None ->
 
             // this is a hack; need a better solution in the long term
+            // see https://visualfsharp.codeplex.com/workitem/177
             if m.Assembly = typeof<int option>.Assembly && fsharpPrefixRegex.IsMatch m.Name then
                 let rm = fsharpPrefixRegex.Match m.Name
                 rm.Groups.[1].Value
