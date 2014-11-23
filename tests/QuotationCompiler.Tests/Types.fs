@@ -32,5 +32,11 @@ type TestClass<'T>(value : 'T) =
         with get () = value
         and set v = value <- v
 
+    member __.Item 
+        with get (i : int) =  value
+        and set i v = value <- v
+
     member __.TestMethod (x : int) = (value, x + 1)
     static member GenericMethod<'S> (t : 'T, s : 'S) = new TestClass<'T * 'S>(t, s)
+
+type FSharpDelegate = delegate of int * string -> string

@@ -44,7 +44,12 @@ let ``1. List leaf`` () =
 let ``1. Array leaf`` () =
     compileRun <@ [||] : int [] @> |> should equal Array.empty<int>
     compileRun <@ [|1;2;3|] @> |> should equal [|1;2;3|]
+    compileRun <@ let x = [|0|] in x.[0] <- 42 ; x.[0] @> |> should equal 42
     compileRun <@ [|1 .. 10|] @> |> should equal [|1..10|]
+
+[<Test>]
+let ``1. Multi-dimensional array`` () =
+    compileRun <@ let x = Array3D.zeroCreate<int> 10 10 10 in x.[5,6,7] <- 42 ; x.[5,6,7] @> |> should equal 42
 
 [<Test>]
 let ``1. Null literal leaf`` () =
@@ -137,10 +142,11 @@ let ``2. Simple Type test`` () =
     compileRun <@ match box 42 with :? string as t -> t | :? int as i -> string i | _ -> null @> |> should equal "42"
 
 [<Test>]
-let ``1. Simple Object`` () =
+let ``2. Simple Object`` () =
     compileRun <@ let tc = new TestClass<int * string>((42, "test")) in tc.Value @> |> should equal (42, "test")
     compileRun <@ let tc = new TestClass<int>(0) in tc.Value <- 42 ; tc.Value @> |> should equal 42
     compileRun <@ let tc = new TestClass<int>(0) in tc.TestMethod 0 @> |> should equal (0,1)
+    compileRun <@ let tc = new TestClass<int>(0) in tc.[0] <- 42 ; tc.Value @> |> should equal 42
     compileRun <@ let tc = TestClass<int>.GenericMethod<int>(1,1) in tc.Value @> |> should equal (1,1)
 
 [<Test>]
@@ -215,6 +221,11 @@ let ``2. Simple try/finally`` () =
 
     tester true  |> should equal true
     tester false |> should equal true
+
+[<Test>]
+let ``2. Simple delegate`` () =
+    let d = compileRun <@ let d = FSharpDelegate(fun x y -> sprintf "%d%s" x y) in d @>
+    d.Invoke(42, "test") |> should equal "42test"
 
 [<Test>]
 let ``3. Tuple pattern match`` () =

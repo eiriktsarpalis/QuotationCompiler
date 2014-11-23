@@ -308,6 +308,7 @@ let convertExprToAst (expr : Expr) =
             let binding = mkBinding range synPat synTuple
             SynExpr.LetOrUse(false, false, [binding], synIdent, range)
 
+        // pattern matching with union case field binding
         | UnionCasePropertyGet(instance, isList, uci, prop, pos, fieldCount) ->
             append uci.DeclaringType
             let synInstance = exprToAst instance
