@@ -1,5 +1,28 @@
 ## QuotationCompiler
 
+A library for converting F# quotations to untyped ASTs for the F# compiler service. 
+Allows fully optimized compilation for quotations.
+
+### Example
+
+```fsharp
+#r "QuotationCompiler.dll"
+
+open QuotationCompiler
+
+let fib =
+    QuotationCompiler.ToFunc 
+        <@
+            let rec fib n =
+                if n <= 1 then n
+                else
+                    fib (n-2) + fib(n-1)
+            fib
+        @>
+
+fib () 10
+```
+
 ### Build Status
 
 Head (branch `master`), Build & Unit tests
