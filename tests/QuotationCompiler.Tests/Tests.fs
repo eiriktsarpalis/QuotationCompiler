@@ -159,7 +159,6 @@ let ``2. Simple Object`` () =
     compileRun <@ let tc = new TestClass<int * string>((42, "test")) in tc.Value @> |> should equal (42, "test")
     compileRun <@ let tc = new TestClass<int>(0) in tc.Value <- 42 ; tc.Value @> |> should equal 42
     compileRun <@ let tc = new TestClass<int>(0) in tc.TestMethod 0 @> |> should equal (0,1)
-    compileRun <@ let tc = new TestClass<int>(0) in tc.[0] <- 42 ; tc.Value @> |> should equal 42
     compileRun <@ let tc = TestClass<int>.GenericMethod<int>(1,1) in tc.Value @> |> should equal (1,1)
 
 [<Test>]
@@ -170,6 +169,10 @@ let ``2. Higher-order function`` () =
 [<Test>]
 let ``2. Simple if-then-else`` () =
     compileRun <@ if 101 % 2 = 1 then 25 + 17 else -1 @> |> should equal 42
+
+[<Test>]
+let ``2. Simple Dictionary`` () =
+    compileRun <@ let d = new System.Collections.Generic.Dictionary<int, string> () in d.[42] <- "42" ; d.[42] @> |> should equal "42"
 
 [<Test>]
 let ``2. Simple while loop`` () =
