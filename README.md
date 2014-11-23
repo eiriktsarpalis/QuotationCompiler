@@ -37,13 +37,13 @@ let sqrt (x : float) =
 | Native                      | 00:00:00.040 | 00:00:00.078 | gen0: 0, gen1: 0, gen2: 0      |
 | Unquote                     | 00:03:15.438 | 00:03:02.203 | gen0: 19197, gen1: 21, gen2: 2 |
 | FSharp.Quotations.Evaluator | 00:00:04.304 | 00:00:04.171 | gen0: 180, gen1: 1, gen2: 0    |
-| QuotationsCompiler          | 00:00:00.037 | 00:00:00.031 | gen0: 0, gen1: 0, gen2: 0      |
+| QuotationCompiler           | 00:00:00.037 | 00:00:00.031 | gen0: 0, gen1: 0, gen2: 0      |
 
 ### Limitations
 
 The library currently has a few limitations
 * No support for dynamic assemblies. Quotations inherently belong to the runtime and ASTs are inherently static. It is impossible to compile quotations that reference types/code defined in F# interactive.
-* F# metadata issues. Thing may break when referencing [generic values](https://visualfsharp.codeplex.com/workitem/178) or [CompiledName](https://visualfsharp.codeplex.com/workitem/177) types.
+* F# metadata issues. Things may break when referencing [generic values](https://visualfsharp.codeplex.com/workitem/178) or [CompiledName](https://visualfsharp.codeplex.com/workitem/177) types.
 
 ### Build Status
 
