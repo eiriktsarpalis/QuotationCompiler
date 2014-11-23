@@ -4,15 +4,17 @@
 
 open QuotationCompiler
 
-#r "/Users/eirik/Desktop/test.dll"
-
-let f =
+let fib =
     QuotationCompiler.ToFunc 
         <@
-            Async.RunSynchronously(async { return 42})
+            let rec fib n =
+                if n <= 1 then n
+                else
+                    fib (n-2) + fib(n-1)
+            fib
         @>
 
-f ()
+fib () 10
 
 let ast =
     <@ 
