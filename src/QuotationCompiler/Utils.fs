@@ -72,15 +72,6 @@
             let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
             SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, pat, None, expr, range0, SequencePointInfoForBinding.SequencePointAtBinding range)
 
-        let mkArgumentBinding range optName synParam =
-            match optName with
-            | None -> synParam
-            | Some name -> 
-                let equality = SynExpr.Ident(mkIdent range "op_Equality")
-                let ident = SynExpr.LongIdent(true, mkLongIdent range [mkIdent range name], None, range)
-                let innerApp = SynExpr.App(ExprAtomicFlag.NonAtomic, true, equality, ident, range)
-                SynExpr.App(ExprAtomicFlag.NonAtomic, false, innerApp, synParam, range)
-
         let mkUniqueIdentifier range =
             let suffix = Guid.NewGuid().ToString("N")
             let name = "_bind_" + suffix
@@ -166,6 +157,16 @@
         let sysMemberToSynMember range (m : MemberInfo) =
             let liwd = LongIdentWithDots(getMemberPath range m, [range])
             SynExpr.LongIdent(false, liwd, None, range)
+
+        /// creates a syntactic argument passed to method calls
+        let mkArgumentBinding range optName synParam =
+            match optName with
+            | None -> synParam
+            | Some name -> 
+                let equality = SynExpr.Ident(mkIdent range "op_Equality")
+                let ident = SynExpr.LongIdent(true, mkLongIdent range [mkIdent range name], None, range)
+                let innerApp = SynExpr.App(ExprAtomicFlag.NonAtomic, true, equality, ident, range)
+                SynExpr.App(ExprAtomicFlag.NonAtomic, false, innerApp, synParam, range)
 
         /// recognizes bindings to union case fields in pattern matches
         /// Quotations directly access propertyInfo instances, which are
