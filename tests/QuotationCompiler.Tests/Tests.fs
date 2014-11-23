@@ -82,6 +82,19 @@ let ``2. Simple let binding`` () =
     compileRun <@ let x = 1 + 1 in x + x @> |> should equal 4
 
 [<Test>]
+let ``2. Simple mutable binding`` () =
+    compileRun <@ let mutable x = 0 in x <- 4 ; x @> |> should equal 4
+
+[<Test>]
+let ``2. Simple use binding`` () =
+    compileRun 
+        <@ 
+            let x = new DummyDisposable () 
+            do use y = x in () 
+            x.IsDisposed
+        @> |> should equal true
+
+[<Test>]
 let ``2. Nested let binding`` () =
     compileRun 
         <@ 

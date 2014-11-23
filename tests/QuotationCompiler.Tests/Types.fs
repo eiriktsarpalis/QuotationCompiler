@@ -40,3 +40,9 @@ type TestClass<'T>(value : 'T) =
     static member GenericMethod<'S> (t : 'T, s : 'S) = new TestClass<'T * 'S>(t, s)
 
 type FSharpDelegate = delegate of int * string -> string
+
+type DummyDisposable () =
+    let mutable disposed = false
+    member __.IsDisposed = disposed
+    interface System.IDisposable with
+        member __.Dispose () = disposed <- true
