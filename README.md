@@ -32,6 +32,8 @@ let sqrt (x : float) =
 
     approximate x
 ```
+Executing the compiled functions 10^6 times produced the following result:
+
 | Library                     | Time         | GC gen0 | GC gen1 | GC gen2 |
 |-----------------------------|--------------|---------|---------|---------|
 | Native                      | 00:00:00.040 | 0       | 0       | 0       |
