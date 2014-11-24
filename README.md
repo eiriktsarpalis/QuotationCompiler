@@ -32,6 +32,8 @@ let sqrt (x : float) =
 
     approximate x
 ```
+Executing the compiled functions 10^6 times produced the following result:
+
 | Library                     | Time         | GC gen0 | GC gen1 | GC gen2 |
 |-----------------------------|--------------|---------|---------|---------|
 | Native                      | 00:00:00.040 | 0       | 0       | 0       |
@@ -50,4 +52,4 @@ The library currently has a few limitations
 Head (branch `master`), Build & Unit tests
 
 * Windows/.NET [![Build status](https://ci.appveyor.com/api/projects/status/3a84u9wrf9xt0aks/branch/master?svg=true)](https://ci.appveyor.com/project/nessos/quotationscompiler/branch/master)
-* Mac OS X/Mono 3.10 [![Build Status](https://travis-ci.org/eiriktsarpalis/QuotationsCompiler.png?branch=master)](https://travis-ci.org/eiriktsarpalis/QuotationsCompiler/branches)
+* Mac OS X/Mono 3.10 [![Build Status](https://travis-ci.org/eiriktsarpalis/QuotationCompiler.png?branch=master)](https://travis-ci.org/eiriktsarpalis/QuotationCompiler/branches)

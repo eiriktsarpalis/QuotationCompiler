@@ -279,6 +279,19 @@ let ``3. FSharp exceptions`` () =
     compileRun <@ try raise <| MatchFailureException ("test", 17, 25) with MatchFailureException(_,i,j) -> i + j @> |> should equal 42
 
 [<Test>]
+let ``3. AutoOpened modules`` () =
+    compileRun <@ autoOpenedValue @> |> should equal autoOpenedValue
+
+[<Test>]
+let ``3. Extension methods`` () =
+    compileRun <@ let c = new ClassWithOptionalParams() in c.ExtensionMethod 42 @> |> should equal 42
+    compileRun <@ ClassWithOptionalParams.StaticExtensionMethod 42 @> |> should equal 42
+
+[<Test>]
+let ``3. Generic values`` () =
+    compileRun <@ genericValue<int> @> |> should equal genericValue<int>
+
+[<Test>]
 let ``4. Sequence builders`` () =
     compileRun 
         <@ 
@@ -350,3 +363,17 @@ let ``4. Nested Quotations`` () =
                 @> 
         @> 
     |> should equal 120
+
+
+[<Test>]
+let ``4. Query expressions`` () =
+    compileRun
+        <@
+            query {
+                for i in 1 .. 10000 do
+                where (i % 3 = 0)
+                sortByDescending i
+                take 5
+            }
+        @>
+    |> Seq.length |> should equal 5
