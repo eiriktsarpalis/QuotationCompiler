@@ -164,6 +164,12 @@ let convertExprToAst (expr : Expr) =
             let synTy = sysTypeToSynType range t
             SynExpr.TypeTest(synExpr, synTy, range)
 
+        | DefaultValue t ->
+            dependencies.Append t
+            let synType = sysTypeToSynType range t
+            let synParam = SynExpr.Const(SynConst.Unit, range)
+            SynExpr.New(false, synType, synParam, range)
+
         | NewObject(ctorInfo, args) ->
             dependencies.Append ctorInfo.DeclaringType
             let synType = sysTypeToSynType range ctorInfo.DeclaringType
@@ -435,7 +441,6 @@ let convertExprToAst (expr : Expr) =
 
         | AddressOf e -> notImpl expr
         | AddressSet(e,e') -> notImpl expr
-        | DefaultValue(t) -> notImpl expr
         | _ -> notImpl expr
 
     let synExprToLetBinding (expr : SynExpr) =

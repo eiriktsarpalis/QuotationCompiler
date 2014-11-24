@@ -334,6 +334,10 @@ let ``4. Pickled values`` () =
     compileRun <@ let x = value in x.[42] <- ("",0) ; value.[42] @> |> should equal ("",0)
 
 [<Test>]
+let ``4. Default constructor`` () =
+    compileRun <@ let ts = new TestStruct() in ts.Age @> |> should equal ((new TestStruct()).Age)
+
+[<Test>]
 let ``4. Nested Quotations`` () =
     compileRun 
         <@ 

@@ -43,6 +43,12 @@ type DummyDisposable () =
     interface System.IDisposable with
         member __.Dispose () = disposed <- true
 
+[<Struct>]
+type TestStruct(age : int, name : string) =
+   member __.Age = age
+   member __.Name = name
+
+
 type ClassWithOptionalParams(?name : string, ?age : int) =
     member __.Name = defaultArg name ""
     member __.Age = defaultArg age 0
