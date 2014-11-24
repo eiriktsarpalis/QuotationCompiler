@@ -42,5 +42,5 @@ let unquote =
 let compiler =
     {
         new IQuotationEvaluator with
-            member __.Eval e = QuotationCompiler.ToFunc e ()
+            member __.Eval e = QuotationCompiler.Eval e
     }

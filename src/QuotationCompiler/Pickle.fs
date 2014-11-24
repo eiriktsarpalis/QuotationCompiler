@@ -1,65 +1,67 @@
 ﻿module internal QuotationCompiler.Pickle
 
-    //
-    //  Pickling support for values captured in quotations; work in progress
-    //
+//
+//  Provides a mechanism in which quotation values are captured
+//  in the form of top-level cached bindings
+//
 
-    open System
-    open System.IO
-    open System.Collections.Generic
-    open System.Reflection
-    open System.Runtime.Serialization
-    open System.Runtime.Serialization.Formatters.Binary
+open System
+open System.IO
+open System.Collections.Generic
+open System.Reflection
+open System.Runtime.Serialization
+open System.Runtime.Serialization.Formatters.Binary
 
-    open Microsoft.FSharp.Compiler.Ast
-    open Microsoft.FSharp.Compiler.Range
+open Microsoft.FSharp.Quotations
 
-    type private Pickler =
+open Microsoft.FSharp.Compiler.Ast
+open Microsoft.FSharp.Compiler.Range
 
-        static member Pickle (value : obj) = 
-            let bfs = new BinaryFormatter()
-            use mem = new MemoryStream()
-            bfs.Serialize(mem, value)
-            mem.ToArray()
+module private Pickler =
 
-        static member SynUnPickler : SynExpr = notImpl "deserializer"
+    let pickle (value : obj) : byte [] =
+        let bfs = new BinaryFormatter()
+        use mem = new MemoryStream()
+        bfs.Serialize(mem, value)
+        mem.ToArray()
 
-        static member SynCache (t : Type) (obj : obj) : SynExpr = 
-            let synTy = sysTypeToSynType range0 t
-            let pickle = Pickler.Pickle obj
-            let synPickle = SynExpr.Const(SynConst.Bytes(pickle, range0), range0)
-            let synDeserializer = Pickler.SynUnPickler
-            let synDeserialize = SynExpr.App(ExprAtomicFlag.NonAtomic, false, synDeserializer, synPickle, range0)
-            SynExpr.Typed(synDeserialize, synTy, range0)
+    let unPickleExpr(pickle : byte[], t : Type) =
+        let untypedExpr =
+            <@
+                let bfs = new BinaryFormatter()
+                use mem = new MemoryStream(pickle)
+                bfs.Deserialize(mem)
+            @>
 
-    type private InlineCacheEntry =
-        {
-            Ident : Ident
-            Binding : SynModuleDecl
-        }
-    with
-        static member Create(value : obj, ty : Type) =
-            let ident = mkUniqueIdentifier range0
-            let synPat = SynPat.Named(SynPat.Wild range0, ident, false, Some SynAccess.Private, range0)
-            let expr = Pickler.SynCache ty value
-            let binding = SynModuleDecl.Let(false, [mkBinding range0 synPat expr], range0)
-            {
-                Ident = ident
-                Binding = binding
-            }
+        Expr.Coerce(untypedExpr, t)
 
+/// Represents a cached value instance
+type CachedValue =
+    {
+        Ident : Ident
+        UnPickleExpr : Expr
+    }
+with
+    static member Create(value : obj, ty : Type) =
+        let ident = mkUniqueIdentifier range0
+        let pickle = Pickler.pickle value
+        let expr = Pickler.unPickleExpr(pickle, ty)
+        { Ident = ident ; UnPickleExpr = expr }
 
-    type PickleManager() =
-        let idGen = new ObjectIDGenerator()
-        let container = new Dictionary<int64, InlineCacheEntry> ()
+/// Manages serialized Expr.Value bindings
+type PickleManager() =
+    let idGen = new ObjectIDGenerator()
+    let container = new Dictionary<int64, CachedValue> ()
 
-        member __.Append(obj:obj, ty : Type) =
-            let id, isFirst = idGen.GetId obj
-            if isFirst then
-                let entry = InlineCacheEntry.Create(obj, ty)
-                container.Add(id, entry)
-                entry.Ident
-            else
-                let entry = container.[id] in entry.Ident
+    /// Caches value and returns unique identifier for instance
+    member __.Append(obj:obj, ty : Type) =
+        let id, isFirst = idGen.GetId obj
+        if isFirst then
+            let entry = CachedValue.Create(obj, ty)
+            container.Add(id, entry)
+            entry.Ident
+        else
+            let entry = container.[id] in entry.Ident
 
-        member __.Bindings = container |> Seq.map(function (KeyValue(_,v)) -> v.Binding) |> Seq.toList
+    /// Returns all cached values
+    member __.CachedValues = container |> Seq.map(function (KeyValue(_,v)) -> v) |> Seq.toList

@@ -42,3 +42,9 @@ type DummyDisposable () =
     member __.IsDisposed = disposed
     interface System.IDisposable with
         member __.Dispose () = disposed <- true
+
+type ClassWithOptionalParams(?name : string, ?age : int) =
+    member __.Name = defaultArg name ""
+    member __.Age = defaultArg age 0
+
+    static member Create(?name, ?age) = new ClassWithOptionalParams(?name = name, ?age = age)

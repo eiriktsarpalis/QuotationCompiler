@@ -65,6 +65,15 @@ type QuotationCompiler =
             let func = wrapDelegate<Func<'T>>(methodInfo)
             func.Invoke
 
+    /// <summary>
+    ///     Compiles provided quotation tree to value.
+    /// </summary>
+    /// <param name="expr">Quotation tree to be compiled.</param>
+    static member Eval(expr : Expr<'T>) : 'T =
+        let dynAss = QuotationCompiler.ToDynamicAssembly expr
+        let methodInfo = dynAss.GetType(Transformer.moduleName).GetMethod(Transformer.compiledFunctionName)
+        methodInfo.Invoke(null, [||]) :?> 'T
+
 #if DEBUG
 module Ast =
 

@@ -16,6 +16,8 @@
 
         let inline notImpl<'T> e : 'T = raise <| new NotImplementedException(sprintf "%O" e)
 
+        let hset (ts : seq<'T>) = new System.Collections.Generic.HashSet<_>(ts)
+
         let isListType (t : Type) =
             t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<list<_>>
 
@@ -68,8 +70,8 @@
             let lident = mkLongIdent range [mkIdent range v.Name]
             SynPat.LongIdent(lident, None, None, SynConstructorArgs.Pats [], None, range)
 
-        let inline mkBinding range pat expr =
-            let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
+        let inline mkBinding range isTopLevelValue pat expr =
+            let synValData = SynValData.SynValData(None, SynValInfo((if isTopLevelValue then [] else [[]]), SynArgInfo([], false, None)), None)
             SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, pat, None, expr, range0, SequencePointInfoForBinding.SequencePointAtBinding range)
 
         let mkUniqueIdentifier range =

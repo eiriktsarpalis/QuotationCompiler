@@ -8,7 +8,7 @@ open Microsoft.FSharp.Quotations
 open QuotationCompiler
 
 let compile (e : Expr<'T>) = QuotationCompiler.ToFunc e
-let compileRun (e : Expr<'T>) = QuotationCompiler.ToFunc e ()
+let compileRun (e : Expr<'T>) = QuotationCompiler.Eval e
 
 [<Test>]
 let ``1. Constant leaf`` () =
@@ -319,3 +319,30 @@ let ``4. Async workflows`` () =
             @> 
 
     fibAsync 10 |> should equal 55
+
+[<Test>]
+let ``4. Constructor with optional params`` () =
+    compileRun <@ let c = new ClassWithOptionalParams(age = 42) in c.Age @> |> should equal 42
+
+[<Test>]
+let ``4. Method with optional params`` () =
+    compileRun <@ let c = ClassWithOptionalParams.Create(?age = Some 42) in c.Age @> |> should equal 42
+
+[<Test>]
+let ``4. Pickled values`` () =
+    let value = [|1..100|] |> Array.map (fun i -> string i, i)
+    compileRun <@ let x = value in x.[42] <- ("",0) ; value.[42] @> |> should equal ("",0)
+
+[<Test>]
+let ``4. Nested Quotations`` () =
+    compileRun 
+        <@ 
+            compileRun 
+                <@ 
+                    let rec fact n = 
+                        if n = 0 then 1 
+                        else n * fact(n-1) 
+                    fact 5 
+                @> 
+        @> 
+    |> should equal 120

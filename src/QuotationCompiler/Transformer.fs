@@ -14,6 +14,7 @@ open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.Range
 
 open QuotationCompiler.Dependencies
+open QuotationCompiler.Pickle
 
 [<Literal>]
 let moduleName = "CompiledQuotationContainer"
@@ -24,8 +25,8 @@ let compiledFunctionName = "compiledQuotation"
 /// Converts provided quotation to an untyped F# AST
 let convertExprToAst (expr : Expr) =
 
-    let dependencies = ref Dependencies.Empty
-    let append (t : Type) = dependencies := dependencies.Value.Append t
+    let dependencies = new DependencyContainer()
+    let pickles = new PickleManager()
     let defaultRange = defaultArg (tryParseRange expr) range0
 
     let rec exprToAst (expr : Expr) : SynExpr =
@@ -57,15 +58,18 @@ let convertExprToAst (expr : Expr) =
             | null when not <| t.GetCompilationRepresentationFlags().HasFlag CompilationRepresentationFlags.UseNullAsTrueValue ->
                 let synTy = sysTypeToSynType range t
                 SynExpr.Typed(SynExpr.Null range, synTy, range)
-            | _ -> raise <| new NotSupportedException(sprintf "Quotation captures closure of type %O." t)
+
+            | _ -> 
+                let ident = pickles.Append(obj, t)                
+                SynExpr.Ident(ident)
 
         | Var v ->
-            append v.Type
+            dependencies.Append v.Type
             let ident = mkIdent range v.Name
             SynExpr.Ident ident
         
         | Lambda(v, body) ->
-            append v.Type
+            dependencies.Append v.Type
             let vType = sysTypeToSynType range v.Type
             let spat = SynSimplePat.Id(mkIdent range v.Name, None, false ,false ,false, range)
             let untypedPat = SynSimplePats.SimplePats([spat], range)
@@ -75,19 +79,19 @@ let convertExprToAst (expr : Expr) =
 
         | LetRecursive(bindings, body) ->
             let mkBinding (v : Var, bind : Expr) =
-                append v.Type
+                dependencies.Append v.Type
                 let vType = sysTypeToSynType range v.Type
                 let untypedPat = mkVarPat range v
                 let typedPat = SynPat.Typed(untypedPat, vType, range)
                 let synBind = exprToAst bind
-                mkBinding range typedPat synBind
+                mkBinding range false typedPat synBind
 
             let bindings = List.map mkBinding bindings
             let synBody = exprToAst body
             SynExpr.LetOrUse(true, false, bindings, synBody, range)
 
         | Let(v, bind, body) ->
-            append v.Type
+            dependencies.Append v.Type
             let vType = sysTypeToSynType range v.Type
             let untypedPat = mkVarPat range v
             let typedPat = SynPat.Typed(untypedPat, vType, range)
@@ -133,7 +137,7 @@ let convertExprToAst (expr : Expr) =
         // Adapt F# exception constructors to F# idiomatic syntax
         | Coerce(NewObject(ctor, args), t) when t = typeof<exn> && FSharpType.IsExceptionRepresentation ctor.DeclaringType ->
             let exnTy = ctor.DeclaringType
-            append exnTy
+            dependencies.Append exnTy
             let synExn = sysMemberToSynMember range exnTy
             match List.map exprToAst args with
             | [] -> synExn
@@ -143,7 +147,7 @@ let convertExprToAst (expr : Expr) =
                 SynExpr.App(ExprAtomicFlag.NonAtomic, false, synExn, paren, range)
 
         | Coerce(e, t) ->
-            append t
+            dependencies.Append t
             let synExpr = exprToAst e
             let synType = sysTypeToSynType range t
             let synCoerce =
@@ -155,13 +159,13 @@ let convertExprToAst (expr : Expr) =
             SynExpr.Paren(synCoerce, range, None, range)
 
         | TypeTest(expr, t) ->
-            append t
+            dependencies.Append t
             let synExpr = exprToAst expr
             let synTy = sysTypeToSynType range t
             SynExpr.TypeTest(synExpr, synTy, range)
 
         | NewObject(ctorInfo, args) ->
-            append ctorInfo.DeclaringType
+            dependencies.Append ctorInfo.DeclaringType
             let synType = sysTypeToSynType range ctorInfo.DeclaringType
             let synArgs = List.map exprToAst args
             let paramInfo = ctorInfo.GetOptionalParameterInfo()
@@ -178,7 +182,7 @@ let convertExprToAst (expr : Expr) =
             SynExpr.Tuple(synArgs, [], range)
 
         | NewArray(t, elems) ->
-            append t
+            dependencies.Append t
             let synTy = sysTypeToSynType range t
             let synArrayTy = SynType.Array(1, synTy, range)
             let synElems = List.map exprToAst elems
@@ -186,7 +190,7 @@ let convertExprToAst (expr : Expr) =
             SynExpr.Typed(synArray, synArrayTy, range)
 
         | NewRecord(ty, entries) ->
-            append ty
+            dependencies.Append ty
             let synTy = sysTypeToSynType range ty
             let fields = FSharpType.GetRecordFields(ty, BindingFlags.NonPublic ||| BindingFlags.Public) |> Array.toList
             let synEntries = List.map exprToAst entries
@@ -195,7 +199,7 @@ let convertExprToAst (expr : Expr) =
             SynExpr.Typed(synExpr, synTy, range)
 
         | NewUnionCase(uci, args) ->
-            append uci.DeclaringType
+            dependencies.Append uci.DeclaringType
             let synTy = sysTypeToSynType range uci.DeclaringType
             let uciCtor = SynExpr.LongIdent(false, mkUciIdent range uci, None, range)
             let synArgs = List.map exprToAst args
@@ -210,7 +214,7 @@ let convertExprToAst (expr : Expr) =
             SynExpr.Typed(ctorExpr, synTy, range)
 
         | NewDelegate(t, vars, body) ->
-            append t
+            dependencies.Append t
             let synType = sysTypeToSynType range t
             let synBody = exprToAst body
             let rec mkLambda acc (rest : Var list) =
@@ -228,7 +232,7 @@ let convertExprToAst (expr : Expr) =
             SynExpr.New(false, synType, SynExpr.Paren(synAbs, range, None, range), range)
 
         | UnionCaseTest(expr, uci) ->
-            append uci.DeclaringType
+            dependencies.Append uci.DeclaringType
             let synExpr = exprToAst expr
             let ctorPat =
                 if isListType uci.DeclaringType then
@@ -249,7 +253,7 @@ let convertExprToAst (expr : Expr) =
             SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [matchClause ; notMatchClause], false, range)
 
         | Call(instance, methodInfo, args) ->
-            append methodInfo.DeclaringType
+            dependencies.Append methodInfo.DeclaringType
             let synArgs = List.map exprToAst args
             let paramInfo = methodInfo.GetOptionalParameterInfo()
             let synArgs = List.map2 (mkArgumentBinding range) paramInfo synArgs |> List.toArray
@@ -305,12 +309,12 @@ let convertExprToAst (expr : Expr) =
                 ]
 
             let synPat = SynPat.Tuple(patterns, range)
-            let binding = mkBinding range synPat synTuple
+            let binding = mkBinding range false synPat synTuple
             SynExpr.LetOrUse(false, false, [binding], synIdent, range)
 
         // pattern matching with union case field binding
         | UnionCasePropertyGet(instance, isList, uci, prop, pos, fieldCount) ->
-            append uci.DeclaringType
+            dependencies.Append uci.DeclaringType
             let synInstance = exprToAst instance
             let synTy = sysTypeToSynType range prop.PropertyType
             let ident = mkUniqueIdentifier range
@@ -341,7 +345,7 @@ let convertExprToAst (expr : Expr) =
             SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synInstance, [matchClause ; notMatchClause], false, range)
             
         | PropertyGet(instance, propertyInfo, []) ->
-            append propertyInfo.DeclaringType
+            dependencies.Append propertyInfo.DeclaringType
             match instance with
             | None -> sysMemberToSynMember range propertyInfo
             | Some inst ->
@@ -350,7 +354,7 @@ let convertExprToAst (expr : Expr) =
                 SynExpr.DotGet(sysInst, range, liwd, range)
 
         | PropertyGet(instance, propertyInfo, indexers) ->
-            append propertyInfo.DeclaringType
+            dependencies.Append propertyInfo.DeclaringType
             let synIndexer = 
                 match List.map exprToAst indexers with
                 | [one] -> SynIndexerArg.One(one)
@@ -365,7 +369,7 @@ let convertExprToAst (expr : Expr) =
                 SynExpr.DotIndexedGet(synInst, [synIndexer], range, range)
 
         | PropertySet(instance, propertyInfo, [], value) ->
-            append propertyInfo.DeclaringType
+            dependencies.Append propertyInfo.DeclaringType
             let synValue = exprToAst value
             match instance with
             | None ->
@@ -376,7 +380,7 @@ let convertExprToAst (expr : Expr) =
                 SynExpr.DotSet(synInst, LongIdentWithDots([mkIdent range propertyInfo.Name], []), synValue, range)
 
         | PropertySet(instance, propertyInfo, indexers, value) ->
-            append propertyInfo.DeclaringType
+            dependencies.Append propertyInfo.DeclaringType
             let synValue = exprToAst value
             let synIndexer = 
                 match List.map exprToAst indexers with
@@ -393,7 +397,7 @@ let convertExprToAst (expr : Expr) =
                 SynExpr.DotIndexedSet(synInst, [synIndexer], synValue, range, range, range)
 
         | FieldGet(instance, fieldInfo) ->
-            append fieldInfo.DeclaringType
+            dependencies.Append fieldInfo.DeclaringType
             match instance with
             | None -> sysMemberToSynMember range fieldInfo
             | Some inst ->
@@ -401,7 +405,7 @@ let convertExprToAst (expr : Expr) =
                 SynExpr.DotGet(synInst, range, mkLongIdent range [mkIdent range (getFSharpName fieldInfo)], range)
 
         | FieldSet(instance, fieldInfo, value) ->
-            append fieldInfo.DeclaringType
+            dependencies.Append fieldInfo.DeclaringType
             let synValue = exprToAst value
             match instance with
             | None ->
@@ -412,7 +416,7 @@ let convertExprToAst (expr : Expr) =
                 SynExpr.DotSet(synInst, LongIdentWithDots([mkIdent range fieldInfo.Name], []), synValue, range)
         
         | VarSet(v, value) ->
-            append v.Type
+            dependencies.Append v.Type
             let synValue = exprToAst value
             let synVar = LongIdentWithDots([mkIdent range v.Name], [])
             SynExpr.LongIdentSet(synVar, synValue, range)
@@ -424,10 +428,14 @@ let convertExprToAst (expr : Expr) =
             let synBody = exprToAst body
             SynExpr.For(SequencePointAtForLoop range, varIdent, synStartExpr, true, synEndExpr, synBody, range)
 
+        | Quote q -> 
+            let synQuote = exprToAst q
+            let ident = SynExpr.Ident(mkIdent range "op_Quotation")
+            SynExpr.Quote(ident, false, synQuote, false, range)
+
         | AddressOf e -> notImpl expr
         | AddressSet(e,e') -> notImpl expr
         | DefaultValue(t) -> notImpl expr
-        | Quote e -> raise <| new NotSupportedException("nested quotations not supported")
         | _ -> notImpl expr
 
     let synExprToLetBinding (expr : SynExpr) =
@@ -435,15 +443,21 @@ let convertExprToAst (expr : Expr) =
         let synPat = SynPat.LongIdent(mkLongIdent defaultRange [mkIdent defaultRange compiledFunctionName], None, None, synConsArgs, None, defaultRange)
         // create a `let func () = () ; expr` binding to force return type compatible with quotation type.
         let seqExpr = SynExpr.Sequential(SequencePointsAtSeq, true, SynExpr.Const(SynConst.Unit, defaultRange), expr, defaultRange)
-        let binding = mkBinding defaultRange synPat seqExpr
+        let binding = mkBinding defaultRange false synPat seqExpr
         SynModuleDecl.Let(false, [binding], defaultRange)
 
-    let letBindingToParsedInput (decl : SynModuleDecl) =
-        let modl = SynModuleOrNamespace([mkIdent defaultRange moduleName], true, [decl], PreXmlDoc.Empty,[], None, defaultRange)
+    let mkPickleBinding (entry : CachedValue) =
+        let synUnPickle = exprToAst entry.UnPickleExpr
+        let synPat = SynPat.Named(SynPat.Wild range0, entry.Ident, false, None, range0)
+        let binding = mkBinding range0 true synPat synUnPickle
+        SynModuleDecl.Let(false, [binding], range0)
+
+    let moduleDeclsToParsedInput (decls : SynModuleDecl list) =
+        let modl = SynModuleOrNamespace([mkIdent defaultRange moduleName], true, decls, PreXmlDoc.Empty,[], None, defaultRange)
         let file = ParsedImplFileInput("/QuotationCompiler.fs", false, QualifiedNameOfFile(mkIdent defaultRange moduleName), [],[], [modl],false)
         ParsedInput.ImplFile file
 
-    let synExpr = exprToAst expr
-    let parsedInput = synExpr |> synExprToLetBinding |> letBindingToParsedInput
-    let assemblies = dependencies.Value.Assemblies
-    assemblies, parsedInput
+    let synExpr = expr |> exprToAst |> synExprToLetBinding
+    let pickleBindings = pickles.CachedValues |> List.map mkPickleBinding 
+    let parsedInput = pickleBindings @ [synExpr] |> moduleDeclsToParsedInput
+    dependencies.Assemblies, parsedInput
