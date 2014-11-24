@@ -439,8 +439,15 @@ let convertExprToAst (expr : Expr) =
             let ident = SynExpr.Ident(mkIdent range "op_Quotation")
             SynExpr.Quote(ident, false, synQuote, false, range)
 
-        | AddressOf e -> notImpl expr
-        | AddressSet(e,e') -> notImpl expr
+        | AddressOf e ->
+            let synExpr = exprToAst e
+            SynExpr.AddressOf(true, synExpr, range, range)
+            
+        | AddressSet(Var v,e') ->
+            let synValue = exprToAst e'
+            let varIdent = mkLongIdent range [mkIdent range v.Name]
+            SynExpr.LongIdentSet(varIdent, synValue, range)
+            
         | _ -> notImpl expr
 
     let synExprToLetBinding (expr : SynExpr) =
