@@ -176,22 +176,15 @@
         /// in the F# ast.
         let (|UnionCasePropertyGet|_|) (expr : Expr) =
             match expr with
-            | PropertyGet(Some inst, propertyInfo, []) when FSharpType.IsUnion propertyInfo.DeclaringType ->
+            | PropertyGet(Some instance, propertyInfo, []) when FSharpType.IsUnion propertyInfo.DeclaringType ->
                 if isOptionType propertyInfo.DeclaringType then None
+                elif isListType propertyInfo.DeclaringType then None
                 else
-                    let isList = isListType propertyInfo.DeclaringType
-                    let uci = 
-                        if isList then
-                            FSharpType.GetUnionCases(propertyInfo.DeclaringType).[1]
-                        else
-                            // create a dummy instance for declaring type to recover union case info
-                            let dummy = System.Runtime.Serialization.FormatterServices.GetUninitializedObject propertyInfo.DeclaringType
-                            let uci,_ = FSharpValue.GetUnionFields(dummy, propertyInfo.DeclaringType, true)
-                            uci
-
+                    // create a dummy instance for declaring type to recover union case info
+                    let dummy = System.Runtime.Serialization.FormatterServices.GetUninitializedObject propertyInfo.DeclaringType
+                    let uci,_ = FSharpValue.GetUnionFields(dummy, propertyInfo.DeclaringType, true)
                     let flds = uci.GetFields()
-                    assert(flds.Length > 0)
                     match flds |> Array.tryFindIndex (fun p -> p = propertyInfo) with
-                    | Some i -> Some(inst, isList, uci, propertyInfo, i, flds.Length)
+                    | Some i -> Some(instance, uci, i)
                     | None -> None
             | _ -> None

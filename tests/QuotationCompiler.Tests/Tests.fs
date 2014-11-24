@@ -273,6 +273,13 @@ let ``3. Union pattern match`` () =
     compileRun <@ match GA (15,27) with GA (i,j) -> i + j | _ -> -1 @> |> should equal 42
 
 [<Test>]
+let ``3. Peano arithmetic`` () =
+    let int2Peano = compileRun <@ let rec int2Peano n = if n = 0 then Zero else Succ(int2Peano (n-1)) in int2Peano @>
+    let peano2Int = compileRun <@ let rec peano2Int p = match p with Zero -> 0 | Succ p -> 1 + peano2Int p in peano2Int @>
+    42 |> int2Peano |> peano2Int |> should equal 42
+
+
+[<Test>]
 let ``3. FSharp exceptions`` () =
     compileRun <@ try raise FSharpException1 with FSharpException1 -> true | _ -> false @> |> should equal true
     compileRun <@ try raise <| FSharpException2 "test" with FSharpException1 -> "" | FSharpException2 t -> t @> |> should equal "test"

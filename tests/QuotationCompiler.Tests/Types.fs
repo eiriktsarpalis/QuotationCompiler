@@ -9,6 +9,10 @@ type TestGenericUnion<'T> =
     | GA of 'T
     | GB of num:int * text:string
 
+type Peano =
+    | Zero
+    | Succ of Peano
+
 type TestRecord =
     {
         Num : int

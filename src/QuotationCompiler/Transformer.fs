@@ -319,36 +319,11 @@ let convertExprToAst (expr : Expr) =
             SynExpr.LetOrUse(false, false, [binding], synIdent, range)
 
         // pattern matching with union case field binding
-        | UnionCasePropertyGet(instance, isList, uci, prop, pos, fieldCount) ->
+        | UnionCasePropertyGet(instance, uci, position) ->
             dependencies.Append uci.DeclaringType
             let synInstance = exprToAst instance
-            let synTy = sysTypeToSynType range prop.PropertyType
-            let ident = mkUniqueIdentifier range
-            let untypedPat = SynPat.Named(SynPat.Wild range, ident, false, None, range)
-            let typedPat = SynPat.Typed(untypedPat, synTy, range)
-            let patterns =
-                [
-                    for i in 0 .. pos - 1 -> SynPat.Wild range
-                    yield typedPat
-                    for i in pos + 1 .. fieldCount - 1 -> SynPat.Wild range
-                ]
-
-            let synPat = 
-                match patterns with
-                | [p] -> p
-                | ps -> SynPat.Tuple(ps, range)
-
-            let uciIdent =
-                if isList then
-                    mkLongIdent range [mkIdent range "op_ColonColon"]
-                else
-                    mkUciIdent range uci
-
-            let matchPat = SynPat.LongIdent(uciIdent, None, None, SynConstructorArgs.Pats [synPat], None, range)
-            let matchClause = SynMatchClause.Clause(matchPat, None, SynExpr.Ident ident, range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
-            let synFailwith = SynExpr.App(ExprAtomicFlag.NonAtomic, false, SynExpr.Ident(mkIdent range0 "failwith"), SynExpr.Const(SynConst.String("impossible", range0), range0), range0)
-            let notMatchClause = SynMatchClause.Clause(SynPat.Wild range, None, synFailwith, range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
-            SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synInstance, [matchClause ; notMatchClause], false, range)
+            let (LongIdentWithDots(uciIdent,_)) = mkUciIdent range uci
+            SynExpr.LibraryOnlyUnionCaseFieldGet(synInstance, uciIdent, position, range)
             
         | PropertyGet(instance, propertyInfo, []) ->
             dependencies.Append propertyInfo.DeclaringType
