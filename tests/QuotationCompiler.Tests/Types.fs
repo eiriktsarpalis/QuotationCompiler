@@ -48,3 +48,14 @@ type ClassWithOptionalParams(?name : string, ?age : int) =
     member __.Age = defaultArg age 0
 
     static member Create(?name, ?age) = new ClassWithOptionalParams(?name = name, ?age = age)
+
+
+[<AutoOpen>]
+module AutoOpenedModule =
+    let autoOpenedValue = 42
+
+    let genericValue<'T> = typeof<'T>
+
+    type ClassWithOptionalParams with
+        member __.ExtensionMethod (x : int) = x
+        static member StaticExtensionMethod (x : int) = x
