@@ -18,7 +18,7 @@ hello ()
 
 ### Performance
 
-As can be expected, performance greatly exceeds all other quotation evaluation libraries.
+As can be expected, performance exceeds all other quotation evaluation libraries.
 Here is a [benchmark](https://github.com/eiriktsarpalis/QuotationsCompiler/blob/master/tests/QuotationCompiler.Tests/perf.fsx) for a tail recursive algorithm:
 ```fsharp
 [<ReflectedDefinition>]
@@ -33,21 +33,21 @@ let sqrt (x : float) =
     approximate x
 ```
 
-| Library                     | Compilation time (cold) | Compilation time (warm) |
-|-----------------------------|-------------------------|-------------------------|
-| Native                      | N/A                     | N/A                     |
-| Unquote                     | 00:00:00.055            | 00:00:00.000            |
-| FSharp.Quotations.Evaluator | 00:00:00.405            | 00:00:00.003            |
-| QuotationCompiler           | 00:00:05.068            | 00:00:00.161            |
+| Library                                                                                 | Compilation time (cold) | Compilation time (warm) |
+|-----------------------------------------------------------------------------------------|-------------------------|-------------------------|
+| Native                                                                                  | N/A                     | N/A                     |
+| [Unquote](https://code.google.com/p/unquote/)                                           | 00:00:00.055            | 00:00:00.000            |
+| [FSharp.Quotations.Evaluator](http://fsprojects.github.io/FSharp.Quotations.Evaluator/) | 00:00:00.405            | 00:00:00.003            |
+| QuotationCompiler                                                                       | 00:00:05.068            | 00:00:00.161            |
 
 Executing the compiled functions 10^6 times produced the following results:
 
-| Library                     | Execution time | GC gen0,1,2 |
-|-----------------------------|----------------|-------------|
-| Native                      | 00:00:00.053   | 0,0,0       |
-| Unquote                     | 00:01:46.675   | 9598,12,1   |
-| FSharp.Quotations.Evaluator | 00:00:00.087   | 15,0,0      |
-| QuotationCompiler           | 00:00:00.053   | 0,0,0       |
+| Library                                                                                 | Execution time | GC gen0,1,2 |
+|-----------------------------------------------------------------------------------------|----------------|-------------|
+| Native                                                                                  | 00:00:00.053   | 0,0,0       |
+| [Unquote](https://code.google.com/p/unquote/)                                           | 00:01:46.675   | 9598,12,1   |
+| [FSharp.Quotations.Evaluator](http://fsprojects.github.io/FSharp.Quotations.Evaluator/) | 00:00:00.087   | 15,0,0      |
+| QuotationCompiler                                                                       | 00:00:00.053   | 0,0,0       |
 
 ### Limitations
 
