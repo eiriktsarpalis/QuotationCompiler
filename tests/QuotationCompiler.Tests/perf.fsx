@@ -24,27 +24,29 @@ let sqrtExpr = Expr.GetReflectedDefinition <@ sqrt @>
 #time
 
 // native
-// Real: 00:00:00.040, CPU: 00:00:00.078, GC gen0: 0, gen1: 0, gen2: 0
+// Execute time : Real: 00:00:00.053, CPU: 00:00:00.109, GC gen0: 0, gen1: 0, gen2: 0
 for i = 1 to 1000000 do
     sqrt 2. |> ignore
 
 // unquote
+// Compile time : Real: 00:00:00.055, CPU: 00:00:00.062, GC gen0: 0, gen1: 0, gen2: 0
+// Execute time : Real: 00:01:46.675, CPU: 00:01:46.673, GC gen0: 9598, gen1: 12, gen2: 1
 let uqSqrt = unquote.Eval sqrtExpr
-
-// Real: 00:03:15.438, CPU: 00:03:02.203, GC gen0: 19197, gen1: 21, gen2: 2
 for i = 1 to 1000000 do
     uqSqrt 2. |> ignore
 
 // quotations evaluator
+// Compile time (cold) : Real: 00:00:00.405, CPU: 00:00:00.390, GC gen0: 0, gen1: 0, gen2: 0
+// Compile time (warm) : Real: 00:00:00.004, CPU: 00:00:00.000, GC gen0: 0, gen1: 0, gen2: 0
+// Execute time : Real: 00:00:00.087, CPU: 00:00:00.093, GC gen0: 15, gen1: 0, gen2: 0
 let qeSqrt = powerpack.Eval sqrtExpr
-
-// Real: 00:00:04.304, CPU: 00:00:04.171, GC gen0: 180, gen1: 1, gen2: 0
 for i = 1 to 1000000 do
     qeSqrt 2. |> ignore
 
 // quotations compiler
-let qqSqrt = compiler.Eval sqrtExpr
-
-// Real: 00:00:00.037, CPU: 00:00:00.031, GC gen0: 0, gen1: 0, gen2: 0
+// Compile time (cold) : Real: 00:00:05.068, CPU: 00:00:05.101, GC gen0: 11, gen1: 5, gen2: 1
+// Compile time (warm) : Real: 00:00:00.149, CPU: 00:00:00.187, GC gen0: 7, gen1: 2, gen2: 0
+// Execute time : Real: 00:00:00.053, CPU: 00:00:00.046, GC gen0: 0, gen1: 0, gen2: 0
+let qcSqrt = compiler.Eval sqrtExpr
 for i = 1 to 1000000 do
-    qqSqrt 2. |> ignore
+    qcSqrt 2. |> ignore

@@ -67,11 +67,11 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Compiler.Service">
-      <HintPath>..\..\packages\FSharp.Compiler.Service.0.0.79\lib\net45\FSharp.Compiler.Service.dll</HintPath>
+      <HintPath>..\..\packages\FSharp.Compiler.Service.0.0.80\lib\net45\FSharp.Compiler.Service.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.Quotations.Evaluator">
-      <HintPath>..\..\packages\FSharp.Quotations.Evaluator.1.0.3\lib\net40\FSharp.Quotations.Evaluator.dll</HintPath>
+      <HintPath>..\..\packages\FSharp.Quotations.Evaluator.1.0.4\lib\net40\FSharp.Quotations.Evaluator.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FsUnit.NUnit">
