@@ -32,14 +32,22 @@ let sqrt (x : float) =
 
     approximate x
 ```
-Executing the compiled functions 10^6 times produced the following result:
 
-| Library                     | Compile time (cold) | Execution time | GC gen0,1,2 |
-|-----------------------------|---------------------|----------------|-------------|
-| Native                      | N/A                 | 00:00:00.053   | 0,0,0       |
-| Unquote                     | 00:00:00.055        | 00:01:46.675   | 9598,12,1   |
-| FSharp.Quotations.Evaluator | 00:00:00.405        | 00:00:00.087   | 15,0,0      |
-| QuotationCompiler           | 00:00:05.068        | 00:00:00.053   | 0,0,0       |
+| Library                     | Compilation time (cold) | Compile time (warm) |
+|-----------------------------|-------------------------|---------------------|
+| Native                      | N/A                     | N/A                 |
+| Unquote                     | 00:00:00.055            | 00:00:00.000        |
+| FSharp.Quotations.Evaluator | 00:00:00.405            | 00:00:00.003        |
+| QuotationCompiler           | 00:00:05.068            | 00:00:00.161        |
+
+Executing the compiled functions 10^6 times produced the following results:
+
+| Library                     | Execution time | GC gen0,1,2 |
+|-----------------------------|----------------|-------------|
+| Native                      | 00:00:00.053   | 0,0,0       |
+| Unquote                     | 00:01:46.675   | 9598,12,1   |
+| FSharp.Quotations.Evaluator | 00:00:00.087   | 15,0,0      |
+| QuotationCompiler           | 00:00:00.053   | 0,0,0       |
 
 ### Limitations
 
