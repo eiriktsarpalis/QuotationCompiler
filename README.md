@@ -34,12 +34,12 @@ let sqrt (x : float) =
 ```
 Executing the compiled functions 10^6 times produced the following result:
 
-| Library                     | Time         | GC gen0 | GC gen1 | GC gen2 |
-|-----------------------------|--------------|---------|---------|---------|
-| Native                      | 00:00:00.040 | 0       | 0       | 0       |
-| Unquote                     | 00:03:15.438 | 19197   | 21      | 2       |
-| FSharp.Quotations.Evaluator | 00:00:04.304 | 180     | 1       | 0       |
-| QuotationCompiler           | 00:00:00.037 | 0       | 0       | 0       |
+| Library                     | Compile time (cold) | Execution time | GC gen0,1,2 |
+|-----------------------------|---------------------|----------------|-------------|
+| Native                      | N/A                 | 00:00:00.053   | 0,0,0       |
+| Unquote                     | 00:00:00.055        | 00:01:46.675   | 9598,12,1   |
+| FSharp.Quotations.Evaluator | 00:00:00.405        | 00:00:00.087   | 15,0,0      |
+| QuotationCompiler           | 00:00:05.068        | 00:00:00.053   | 0,0,0       |
 
 ### Limitations
 
