@@ -20,7 +20,15 @@ open Fake.AssemblyInfoFile
 
 let project = "QuotationCompiler"
 let authors = ["Eirik Tsarpalis"]
-let summary = "A Quotation compiler library that uses FSharp.Compiler.Service"
+let summary = "An F# quotation compilation library that uses FSharp.Compiler.Service"
+
+let description = """
+    A small library for compiling code quotations using the F# compiler service. 
+    Its primary functionality is transforming quotation trees to untyped ASTs used by the F# compiler. 
+    Since code is generated using the F# compiler proper, the end result is fully efficient and optimized.
+"""
+
+let tags = "F# fsharp quotations compiler FSharp.Compiler.Service metaprogramming"
 
 let gitHome = "https://github.com/eiriktsarpalis"
 let gitName = "QuotationCompiler"
@@ -36,6 +44,8 @@ let testAssemblies = ["bin/QuotationCompiler.Tests.dll"]
 
 //// Read release notes & version info from RELEASE_NOTES.md
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
+let release = parseReleaseNotes (IO.File.ReadAllLines "RELEASE_NOTES.md")
+let nugetVersion = release.NugetVersion
 
 
 // --------------------------------------------------------------------------------------
@@ -57,6 +67,18 @@ Target "Clean" (fun _ ->
 //// Build library & test project
 
 let configuration = environVarOrDefault "Configuration" "Release"
+
+// Generate assembly info files with the right version & up-to-date information
+Target "AssemblyInfo" (fun _ ->
+    let attrs =
+        [ 
+            Attribute.Version release.AssemblyVersion
+            Attribute.FileVersion release.AssemblyVersion
+        ] 
+
+    CreateFSharpAssemblyInfo "src/QuotationCompiler/AssemblyInfo.fs" attrs
+)
+
 
 Target "Build" (fun () ->
     // Build the rest of the project
@@ -84,6 +106,53 @@ Target "RunTests" (fun _ ->
             OutputFile = "TestResults.xml" })
 )
 
+//
+//// --------------------------------------------------------------------------------------
+//// Build a NuGet package
+
+let addFile (target : string) (file : string) =
+    if File.Exists (Path.Combine("nuget", file)) then (file, Some target, None)
+    else raise <| new FileNotFoundException(file)
+
+let addAssembly (target : string) assembly =
+    let includeFile force file =
+        let file = file
+        if File.Exists (Path.Combine("nuget", file)) then [(file, Some target, None)]
+        elif force then raise <| new FileNotFoundException(file)
+        else []
+
+    seq {
+        yield! includeFile true assembly
+        yield! includeFile false <| Path.ChangeExtension(assembly, "pdb")
+        yield! includeFile false <| Path.ChangeExtension(assembly, "xml")
+        yield! includeFile false <| assembly + ".config"
+    }
+
+Target "NuGet" (fun _ ->
+    let nugetPath = ".nuget/NuGet.exe"
+    NuGet (fun p -> 
+        { p with   
+            Authors = authors
+            Project = project
+            Summary = summary
+            Description = description
+            Version = nugetVersion
+            ReleaseNotes = String.concat " " release.Notes
+            Tags = tags
+            OutputPath = "bin"
+            ToolPath = nugetPath
+            AccessKey = getBuildParamOrDefault "nugetkey" ""
+            Dependencies = [("FSharp.Compiler.Service", "0.0.80")]
+            Publish = hasBuildParam "nugetkey" 
+            Files =
+                [
+                    yield! addAssembly @"lib\net45" @"..\bin\QuotationCompiler.dll"
+                ]
+        })
+        ("nuget/QuotationCompiler.nuspec")
+)
+
+
 FinalTarget "CloseTestRunner" (fun _ ->  
     ProcessHelper.killProcess "nunit-agent.exe"
 )
@@ -93,12 +162,18 @@ FinalTarget "CloseTestRunner" (fun _ ->
 
 Target "Prepare" DoNothing
 Target "Default" DoNothing
+Target "Release" DoNothing
 
 "Clean"
   ==> "RestorePackages"
+  ==> "AssemblyInfo"
   ==> "Prepare"
   ==> "Build"
   ==> "RunTests"
   ==> "Default"
+
+"Build"
+  ==> "NuGet"
+  ==> "Release"
 
 RunTargetOrDefault "Default"

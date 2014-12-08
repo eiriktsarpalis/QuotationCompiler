@@ -4,6 +4,8 @@ A small library for compiling code quotations using the F# compiler service.
 Its primary functionality is transforming quotation trees to untyped ASTs used by the F# compiler.
 Since code is generated using the F# compiler proper, the end result is fully efficient and optimized.
 
+Package available on [NuGet](https://www.nuget.org/packages/QuotationCompiler/).
+
 ### Example
 
 ```fsharp
@@ -53,7 +55,7 @@ Executing the compiled functions 10^6 times produced the following results:
 
 The library currently has a few limitations
 * No support for dynamic assemblies. Quotations inherently belong to the runtime and ASTs are inherently static. It is impossible to compile quotations that reference types/code defined in F# interactive.
-* F# metadata issues. Things may break when referencing [generic values](https://visualfsharp.codeplex.com/workitem/178) or [CompiledName](https://visualfsharp.codeplex.com/workitem/177) types.
+* F# metadata issues. Things may break when referencing [generic values](https://visualfsharp.codeplex.com/workitem/178), extension methods or [CompiledName](https://visualfsharp.codeplex.com/workitem/177) types.
 
 ### Build Status
 
