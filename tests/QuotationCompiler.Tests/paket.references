@@ -1,0 +1,5 @@
+FSharp.Compiler.Service
+FSharp.Quotations.Evaluator
+FsUnit
+NUnit
+Unquote

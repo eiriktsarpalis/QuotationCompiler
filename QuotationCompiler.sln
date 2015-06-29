@@ -1,8 +1,15 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{8E0FA4F9-0E46-4E2D-B0DC-E9EE874F7FB7}"
+	ProjectSection(SolutionItems) = preProject
+		.paket\paket.bootstrapper.exe = .paket\paket.bootstrapper.exe
+		paket.dependencies = paket.dependencies
+		paket.lock = paket.lock
+		.paket\paket.targets = .paket\paket.targets
+	EndProjectSection
+EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "QuotationCompiler", "src\QuotationCompiler\QuotationCompiler.fsproj", "{FE673FCD-C216-4742-8BA5-808571745433}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "QuotationCompiler.Tests", "tests\QuotationCompiler.Tests\QuotationCompiler.Tests.fsproj", "{33EA3F7C-A6E0-407B-8FAE-1C1F5EA213E7}"
@@ -17,14 +24,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "project", "project", "{6DF1
 		nuget\QuotationCompiler.nuspec = nuget\QuotationCompiler.nuspec
 		README.md = README.md
 		RELEASE_NOTES.md = RELEASE_NOTES.md
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{5B6E6085-D2F3-449C-90DF-0DF29C0E7B20}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject
 Global

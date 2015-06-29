@@ -1,0 +1,17 @@
+﻿type project
+id QuotationCompiler
+description
+    A small library for compiling code quotations using the F# compiler service. 
+    Its primary functionality is transforming quotation trees to untyped ASTs used by the F# compiler. 
+    Since code is generated using the F# compiler proper, the end result is fully efficient and optimized.
+authors
+    Eirik Tsarpalis
+copyright
+    Copyright 2015
+summary
+    An F# quotation compilation library that uses FSharp.Compiler.Service
+licenseurl https://github.com/mbraceproject/MBrace.Core/blob/master/License.md
+projecturl http://www.m-brace.net/
+iconurl https://avatars2.githubusercontent.com/u/9674757
+tags
+    F#, fsharp, quotations, compiler, FSharp.Compiler.Service, metaprogramming

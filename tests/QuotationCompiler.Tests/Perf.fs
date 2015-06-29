@@ -30,7 +30,7 @@ type Expr with
 let powerpack =
     {
         new IQuotationEvaluator with
-            member __.Eval e = QuotationEvaluator.Compile e
+            member __.Eval e = QuotationEvaluator.Evaluate e
     }
 
 let unquote =

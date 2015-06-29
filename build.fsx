@@ -4,7 +4,7 @@
 
 #I "packages/FAKE/tools"
 #r "packages/FAKE/tools/FakeLib.dll"
-//#load "packages/SourceLink.Fake/tools/SourceLink.fsx"
+
 open System
 open System.IO
 
@@ -12,23 +12,12 @@ open Fake
 open Fake.Git
 open Fake.ReleaseNotesHelper
 open Fake.AssemblyInfoFile
-//open SourceLink
 
 // --------------------------------------------------------------------------------------
 // Information about the project to be used at NuGet and in AssemblyInfo files
 // --------------------------------------------------------------------------------------
 
 let project = "QuotationCompiler"
-let authors = ["Eirik Tsarpalis"]
-let summary = "An F# quotation compilation library that uses FSharp.Compiler.Service"
-
-let description = """
-    A small library for compiling code quotations using the F# compiler service. 
-    Its primary functionality is transforming quotation trees to untyped ASTs used by the F# compiler. 
-    Since code is generated using the F# compiler proper, the end result is fully efficient and optimized.
-"""
-
-let tags = "F# fsharp quotations compiler FSharp.Compiler.Service metaprogramming"
 
 let gitHome = "https://github.com/eiriktsarpalis"
 let gitName = "QuotationCompiler"
@@ -49,12 +38,7 @@ let nugetVersion = release.NugetVersion
 
 
 // --------------------------------------------------------------------------------------
-// Clean build results & restore NuGet packages
-
-Target "RestorePackages" (fun _ ->
-    !! "./**/packages.config"
-    |> Seq.iter (RestorePackage (fun p -> { p with ToolPath = "./.nuget/NuGet.exe" }))
-)
+// Clean build results
 
 Target "Clean" (fun _ ->
     CleanDirs <| !! "./**/bin/"
@@ -106,51 +90,19 @@ Target "RunTests" (fun _ ->
             OutputFile = "TestResults.xml" })
 )
 
-//
 //// --------------------------------------------------------------------------------------
 //// Build a NuGet package
 
-let addFile (target : string) (file : string) =
-    if File.Exists (Path.Combine("nuget", file)) then (file, Some target, None)
-    else raise <| new FileNotFoundException(file)
-
-let addAssembly (target : string) assembly =
-    let includeFile force file =
-        let file = file
-        if File.Exists (Path.Combine("nuget", file)) then [(file, Some target, None)]
-        elif force then raise <| new FileNotFoundException(file)
-        else []
-
-    seq {
-        yield! includeFile true assembly
-        yield! includeFile false <| Path.ChangeExtension(assembly, "pdb")
-        yield! includeFile false <| Path.ChangeExtension(assembly, "xml")
-        yield! includeFile false <| assembly + ".config"
-    }
-
-Target "NuGet" (fun _ ->
-    let nugetPath = ".nuget/NuGet.exe"
-    NuGet (fun p -> 
-        { p with   
-            Authors = authors
-            Project = project
-            Summary = summary
-            Description = description
-            Version = nugetVersion
-            ReleaseNotes = String.concat " " release.Notes
-            Tags = tags
-            OutputPath = "bin"
-            ToolPath = nugetPath
-            AccessKey = getBuildParamOrDefault "nugetkey" ""
-            Dependencies = [("FSharp.Compiler.Service", "0.0.80")]
-            Publish = hasBuildParam "nugetkey" 
-            Files =
-                [
-                    yield! addAssembly @"lib\net45" @"..\bin\QuotationCompiler.dll"
-                ]
-        })
-        ("nuget/QuotationCompiler.nuspec")
+Target "NuGet" (fun _ ->    
+    Paket.Pack (fun p -> 
+        { p with 
+            ToolPath = ".paket/paket.exe" 
+            OutputPath = "bin/"
+            Version = release.NugetVersion
+            ReleaseNotes = toLines release.Notes })
 )
+
+Target "NuGetPush" (fun _ -> Paket.Push (fun p -> { p with WorkingDir = "bin/" }))
 
 
 FinalTarget "CloseTestRunner" (fun _ ->  
@@ -165,7 +117,6 @@ Target "Default" DoNothing
 Target "Release" DoNothing
 
 "Clean"
-  ==> "RestorePackages"
   ==> "AssemblyInfo"
   ==> "Prepare"
   ==> "Build"
@@ -175,5 +126,8 @@ Target "Release" DoNothing
 "Build"
   ==> "NuGet"
   ==> "Release"
+
+"NuGet" 
+  ==> "NuGetPush"
 
 RunTargetOrDefault "Default"
