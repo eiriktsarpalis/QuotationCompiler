@@ -16,14 +16,8 @@ open Microsoft.FSharp.Compiler.Range
 open QuotationCompiler.Dependencies
 open QuotationCompiler.Pickle
 
-[<Literal>]
-let moduleName = "CompiledQuotationContainer"
-
-[<Literal>]
-let compiledFunctionName = "compiledQuotation"
-
 /// Converts provided quotation to an untyped F# AST
-let convertExprToAst (expr : Expr) =
+let convertExprToAst (compiledModuleName : string) (compiledFunctionName : string) (expr : Expr) =
 
     let dependencies = new DependencyContainer()
     let pickles = new PickleManager()
@@ -440,8 +434,8 @@ let convertExprToAst (expr : Expr) =
         SynModuleDecl.Let(false, [binding], range0)
 
     let moduleDeclsToParsedInput (decls : SynModuleDecl list) =
-        let modl = SynModuleOrNamespace([mkIdent defaultRange moduleName], true, decls, PreXmlDoc.Empty,[], None, defaultRange)
-        let file = ParsedImplFileInput("/QuotationCompiler.fs", false, QualifiedNameOfFile(mkIdent defaultRange moduleName), [],[], [modl],false)
+        let modl = SynModuleOrNamespace([mkIdent defaultRange compiledModuleName], true, decls, PreXmlDoc.Empty,[], None, defaultRange)
+        let file = ParsedImplFileInput("/QuotationCompiler.fs", false, QualifiedNameOfFile(mkIdent defaultRange compiledModuleName), [],[], [modl],false)
         ParsedInput.ImplFile file
 
     let synExpr = expr |> exprToAst |> synExprToLetBinding
