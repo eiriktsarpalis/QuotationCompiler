@@ -20,7 +20,8 @@ open QuotationCompiler.Pickle
 let convertExprToAst (compiledModuleName : string) (compiledFunctionName : string) (expr : Expr) =
 
     let dependencies = new DependencyContainer()
-    let pickles = new PickleManager()
+    let serializer = new BinaryFormatterExprSerializer()
+    let pickles = new PickledValueManager(serializer)
     let defaultRange = defaultArg (tryParseRange expr) range0
 
     let rec exprToAst (expr : Expr) : SynExpr =
@@ -427,8 +428,8 @@ let convertExprToAst (compiledModuleName : string) (compiledFunctionName : strin
         let binding = mkBinding defaultRange false synPat seqExpr
         SynModuleDecl.Let(false, [binding], defaultRange)
 
-    let mkPickleBinding (entry : CachedValue) =
-        let synUnPickle = exprToAst entry.UnPickleExpr
+    let mkPickleBinding (entry : ExprPickle) =
+        let synUnPickle = exprToAst entry.Expr
         let synPat = SynPat.Named(SynPat.Wild range0, entry.Ident, false, None, range0)
         let binding = mkBinding range0 true synPat synUnPickle
         SynModuleDecl.Let(false, [binding], range0)
@@ -439,6 +440,6 @@ let convertExprToAst (compiledModuleName : string) (compiledFunctionName : strin
         ParsedInput.ImplFile file
 
     let synExpr = expr |> exprToAst |> synExprToLetBinding
-    let pickleBindings = pickles.CachedValues |> List.map mkPickleBinding 
+    let pickleBindings = pickles.PickledValues |> List.map mkPickleBinding 
     let parsedInput = pickleBindings @ [synExpr] |> moduleDeclsToParsedInput
     dependencies.Assemblies, parsedInput

@@ -1,5 +1,4 @@
 ﻿#I "../../bin/"
-#r "FSharp.Compiler.Service.dll"
 #r "QuotationCompiler.dll"
 
 open QuotationCompiler

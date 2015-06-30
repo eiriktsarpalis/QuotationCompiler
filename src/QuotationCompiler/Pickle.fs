@@ -17,51 +17,57 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.Range
 
-module private Pickler =
+open QuotationCompiler.Utils
 
-    let pickle (value : obj) : byte [] =
-        let bfs = new BinaryFormatter()
-        use mem = new MemoryStream()
-        bfs.Serialize(mem, value)
-        mem.ToArray()
+/// Expression-based value serialization abstraction
+type IExprSerializer =
+    /// Produces an expression tree that performs
+    /// deserialization for provided value at runtime.
+    abstract Pickle<'T> : 'T -> Expr<'T>
 
-    let unPickleExpr(pickle : byte[], t : Type) =
-        let untypedExpr =
-            <@
-                let bfs = new BinaryFormatter()
-                use mem = new MemoryStream(pickle)
-                bfs.Deserialize(mem)
-            @>
-
-        Expr.Coerce(untypedExpr, t)
-
-/// Represents a cached value instance
-type CachedValue =
+/// Represents a value that has been pickled as expression
+type ExprPickle =
     {
+        /// Identifier used for referencing the value.
         Ident : Ident
-        UnPickleExpr : Expr
+        /// Expression constructing the value.
+        Expr : Expr
     }
-with
-    static member Create(value : obj, ty : Type) =
-        let ident = mkUniqueIdentifier range0
-        let pickle = Pickler.pickle value
-        let expr = Pickler.unPickleExpr(pickle, ty)
-        { Ident = ident ; UnPickleExpr = expr }
 
 /// Manages serialized Expr.Value bindings
-type PickleManager() =
+type PickledValueManager(serializer : IExprSerializer) =
     let idGen = new ObjectIDGenerator()
-    let container = new Dictionary<int64, CachedValue> ()
+    let container = new Dictionary<int64, ExprPickle> ()
 
     /// Caches value and returns unique identifier for instance
     member __.Append(obj:obj, ty : Type) =
         let id, isFirst = idGen.GetId obj
         if isFirst then
-            let entry = CachedValue.Create(obj, ty)
-            container.Add(id, entry)
-            entry.Ident
+            let ident = mkUniqueIdentifier range0
+            let e = Existential.FromType ty
+            let expr = e.Apply { new IFunc<Expr> with member __.Invoke<'T>() = serializer.Pickle<'T>(unbox obj) :> Expr }
+            container.Add(id, { Ident = ident ; Expr = expr })
+            ident
         else
             let entry = container.[id] in entry.Ident
 
     /// Returns all cached values
-    member __.CachedValues = container |> Seq.map(function (KeyValue(_,v)) -> v) |> Seq.toList
+    member __.PickledValues = container |> Seq.map(function (KeyValue(_,v)) -> v) |> Seq.toList
+
+
+type BinaryFormatterExprSerializer() =
+    interface IExprSerializer with
+        member __.Pickle<'T>(value : 'T) : Expr<'T> =
+            let bfs = new BinaryFormatter()
+            use mem = new MemoryStream()
+            bfs.Serialize(mem, value)
+            // ensure value is deserializable at compile time
+            mem.Position <- 0L
+            let _ = bfs.Deserialize(mem)
+            // create unpickle expr
+            let pickle = mem.ToArray()
+            <@
+                let bfs = new BinaryFormatter()
+                use mem = new MemoryStream(pickle)
+                bfs.Deserialize(mem) :?> 'T
+            @>

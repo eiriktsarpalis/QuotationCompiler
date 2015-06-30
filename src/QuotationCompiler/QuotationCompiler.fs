@@ -1,4 +1,4 @@
-﻿namespace QuotationCompiler
+﻿namespace QuotationCompiler.Utilities
 
 open System
 open System.Reflection
@@ -9,6 +9,8 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Microsoft.FSharp.Compiler.SimpleSourceCodeServices
+
+open QuotationCompiler
 
 /// Contains the result of a quotation converted to F# AST
 type QuotationAst =
@@ -46,6 +48,38 @@ type QuotationCompiler =
             ModuleName = compiledModuleName
             FunctionName = compiledFunctionName
         }
+
+#if DEBUG
+
+    /// <summary>
+    ///     Parses source code string into untyped assembly.
+    /// </summary>
+    /// <param name="source">F# code to be parsed.</param>
+    static member ParseFSharpSource(source : string) : ParsedInput option = 
+        Async.RunSynchronously(async {
+            let fileName = "/mock.fs"
+            let checker = FSharpChecker.Create()
+            let! options = checker.GetProjectOptionsFromScript(fileName, "")
+            let! parsed = checker.ParseFileInProject(fileName, source, options)
+            return parsed.ParseTree
+        })
+#endif
+
+namespace QuotationCompiler
+
+open System
+open System.Reflection
+open System.IO
+
+open Microsoft.FSharp.Quotations
+    
+open Microsoft.FSharp.Compiler.Ast
+open Microsoft.FSharp.Compiler.SourceCodeServices
+open Microsoft.FSharp.Compiler.SimpleSourceCodeServices
+
+open QuotationCompiler.Utilities
+
+type QuotationCompiler =
 
     /// <summary>
     ///     Compiles provided quotation tree to assembly.
@@ -103,20 +137,3 @@ type QuotationCompiler =
     static member Eval(expr : Expr<'T>) : 'T =
         let methodInfo = QuotationCompiler.ToDynamicAssembly expr
         methodInfo.Invoke(null, [||]) :?> 'T
-
-#if DEBUG
-module Ast =
-
-    /// <summary>
-    ///     Parses source code string into untyped assembly.
-    /// </summary>
-    /// <param name="source">F# code to be parsed.</param>
-    let ofSourceString (source : string) : ParsedInput option = 
-        Async.RunSynchronously(async {
-            let fileName = "/mock.fs"
-            let checker = FSharpChecker.Create()
-            let! options = checker.GetProjectOptionsFromScript(fileName, "")
-            let! parsed = checker.ParseFileInProject(fileName, source, options)
-            return parsed.ParseTree
-        })
-#endif
