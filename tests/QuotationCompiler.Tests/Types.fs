@@ -22,6 +22,19 @@ with
         | Float f -> f
         | Int i -> float i
 
+type UnionWithProperty2 = 
+    | Red of int
+    | Green of int
+    | Black
+    | Orange of float
+with
+    member this.Convert = 
+        match this with
+        | Red i -> "happy"
+        | Green _ -> "sad"
+        | Black -> "neutral"
+        | Orange _ -> "wow"
+
 type TestRecord =
     {
         Num : int

@@ -274,7 +274,11 @@ let ``3. Union pattern match`` () =
 
 [<Test>]
 let ``3. Union with user-defined property`` () =
-    compileRun <@ (Float 900.).ToScalar @> |> should equal 900.
+    compileRun <@ (Float 900.).ToScalar @> |> should equal ((Float 900.).ToScalar)
+
+[<Test>]
+let ``3. Union with user-defined property 2`` () =
+    compileRun <@ (Red 1).Convert @> |> should equal ((Red 1).Convert)
 
 [<Test>]
 let ``3. Peano arithmetic`` () =

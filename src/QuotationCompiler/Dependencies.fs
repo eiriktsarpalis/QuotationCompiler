@@ -17,7 +17,6 @@ type DependencyContainer () =
         match assemblies with
         | [] -> ()
         | a :: rest when dependencies.Contains a || ignoredAssemblies.Contains a -> append rest
-        | a :: _ when a.IsDynamic -> raise <| new NotSupportedException(sprintf "Quotation depends on dynamic assembly %O." a)
         | a :: rest ->
             let _ = dependencies.Add a
             let appDomainAssemblies = AppDomain.CurrentDomain.GetAssemblies()

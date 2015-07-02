@@ -177,16 +177,16 @@ module internal Utils =
     /// in the F# ast.
     let (|UnionCasePropertyGet|_|) (expr : Expr) =
         match expr with
-        | PropertyGet(Some instance, propertyInfo, []) when FSharpType.IsUnion propertyInfo.DeclaringType ->
-            if isOptionType propertyInfo.DeclaringType then None
-            elif isListType propertyInfo.DeclaringType then None
-            elif propertyInfo.DeclaringType.IsAbstract then None
+        | PropertyGet(Some instance, propertyInfo, []) when FSharpType.IsUnion instance.Type ->
+            if isOptionType instance.Type then None
+            elif isListType instance.Type then None
+            // a property is a union case field \iff its declaring type is a proper subtype of the union type
+            elif instance.Type = propertyInfo.DeclaringType then None
             else
                 // create a dummy instance for declaring type to recover union case info
-                let dummy = System.Runtime.Serialization.FormatterServices.GetUninitializedObject propertyInfo.DeclaringType
+                let dummy = FormatterServices.GetUninitializedObject propertyInfo.DeclaringType
                 let uci,_ = FSharpValue.GetUnionFields(dummy, propertyInfo.DeclaringType, true)
-                let flds = uci.GetFields()
-                match flds |> Array.tryFindIndex (fun p -> p = propertyInfo) with
+                match uci.GetFields() |> Array.tryFindIndex (fun p -> p = propertyInfo) with
                 | Some i -> Some(instance, uci, i)
                 | None -> None
         | _ -> None
