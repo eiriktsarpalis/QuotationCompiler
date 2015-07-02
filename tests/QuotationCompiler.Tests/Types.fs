@@ -13,6 +13,15 @@ type Peano =
     | Zero
     | Succ of Peano
 
+type UnionWithProperty = 
+    | Float of float
+    | Int of int
+with
+    member this.ToScalar = 
+        match this with
+        | Float f -> f
+        | Int i -> float i
+
 type TestRecord =
     {
         Num : int

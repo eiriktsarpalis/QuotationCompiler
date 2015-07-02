@@ -3,6 +3,7 @@
 open System
 open System.Text.RegularExpressions
 open System.Reflection
+open System.Runtime.Serialization
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
@@ -179,6 +180,7 @@ module internal Utils =
         | PropertyGet(Some instance, propertyInfo, []) when FSharpType.IsUnion propertyInfo.DeclaringType ->
             if isOptionType propertyInfo.DeclaringType then None
             elif isListType propertyInfo.DeclaringType then None
+            elif propertyInfo.DeclaringType.IsAbstract then None
             else
                 // create a dummy instance for declaring type to recover union case info
                 let dummy = System.Runtime.Serialization.FormatterServices.GetUninitializedObject propertyInfo.DeclaringType
