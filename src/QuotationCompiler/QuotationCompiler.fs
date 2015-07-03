@@ -73,7 +73,8 @@ open System.Collections.Concurrent
 open System.IO
 
 open Microsoft.FSharp.Quotations
-    
+
+open Microsoft.FSharp.Compiler
 open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Microsoft.FSharp.Compiler.SimpleSourceCodeServices
@@ -82,7 +83,15 @@ open QuotationCompiler.Utilities
 
 type QuotationCompiler private () =
 
+    /// Memoized compiled expression trees
     static let compiledExprs = new ConcurrentDictionary<Expr, obj>(new ExprEqualityComparer())
+
+    static let printErrors (errors : FSharpErrorInfo []) =
+        if Array.isEmpty errors then
+            sprintf "Compilation failed with errors."
+        else
+            let errorMsgs = errors |> Seq.map (fun e -> sprintf "   ** %O" e) |> String.concat Environment.NewLine
+            sprintf "Compilation failed with errors:%s%s" Environment.NewLine errorMsgs
 
     /// <summary>
     ///     Compiles provided quotation tree to assembly.
@@ -92,7 +101,7 @@ type QuotationCompiler private () =
     /// <param name="assemblyName">Assembly name. Defaults to auto generated name.</param>
     /// <param name="compiledModuleName">Name of compiled module containing AST.</param>
     /// <param name="compiledFunctionName">Name of compiled function name containing AST.</param>
-    static member ToAssembly(expr : #Expr, ?targetDirectory : string, ?assemblyName : string, 
+    static member ToAssembly(expr : Expr, ?targetDirectory : string, ?assemblyName : string, 
                                             ?compiledModuleName : string, ?compiledFunctionName : string) : string =
 
         let assemblyName = match assemblyName with None -> sprintf "compiledQuotation_%s" (Guid.NewGuid().ToString("N")) | Some an -> an
@@ -104,21 +113,21 @@ type QuotationCompiler private () =
         let errors, code = sscs.Compile([qast.Tree], assemblyName, location, dependencies, executable = false)
         if code = 0 then location
         else
-            failwithf "Compilation failed with errors %A." errors
+            raise <| new QuotationCompilerException(printErrors errors)
 
     /// <summary>
     ///     Compiles provided quotation tree to dynamic assembly.
     /// </summary>
     /// <param name="expr">Quotation tree to be compiled.</param>
     /// <param name="assemblyName">Assembly name. Defaults to auto generated name.</param>
-    static member ToDynamicAssembly(expr : #Expr, ?assemblyName : string) : MethodInfo =
+    static member ToDynamicAssembly(expr : Expr, ?assemblyName : string) : MethodInfo =
         let assemblyName = match assemblyName with None -> sprintf "compiledQuotation_%s" (Guid.NewGuid().ToString("N")) | Some an -> an
         let qast = QuotationCompiler.ToParsedInput(expr)
         let dependencies = qast.Dependencies |> List.map (fun a -> a.Location)
         let sscs = new SimpleSourceCodeServices()
         match sscs.CompileToDynamicAssembly([qast.Tree], assemblyName, dependencies, None, debug = false) with
         | _, _, Some a -> a.GetType(qast.ModuleName).GetMethod(qast.FunctionName)
-        | errors, _, _ -> failwithf "Compilation failed with errors %A." errors
+        | errors, _, _ -> raise <| new QuotationCompilerException (printErrors errors)
 
     /// <summary>
     ///     Compiles provided quotation tree to function.

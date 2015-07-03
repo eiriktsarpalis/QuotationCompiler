@@ -19,6 +19,7 @@ type ExprEqualityComparer () =
         | Some r -> r.Invoke(o, [||])
         | None ->
             // ExprConstInfo is the first element of the boxed tuple (ExprConstInfo * Expr list)
+            // that is returned by the ShapeCombination active pattern
             let p = FSharpValue.PreComputeTuplePropertyInfo(o.GetType(), 0) |> fst
             let r = p.GetGetMethod(true)
             exprConstInfoReader <- Some r
@@ -34,7 +35,9 @@ type ExprEqualityComparer () =
         | ShapeCombination(c,exprs), ShapeCombination(c', exprs') ->
             let eci = getExprConstInfo c
             let eci' = getExprConstInfo c'
-            eci = eci' && List.forall2 areEqualExprs exprs exprs'
+            eci = eci'
+                && exprs.Length = exprs'.Length
+                && List.forall2 areEqualExprs exprs exprs'
 
         | _ -> false
 

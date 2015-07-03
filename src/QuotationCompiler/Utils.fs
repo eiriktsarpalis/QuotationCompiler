@@ -207,7 +207,6 @@ module internal Utils =
                 | None -> None
         | _ -> None
 
-
     /// Type existential container
     [<AbstractClass>]
     type Existential internal () =
