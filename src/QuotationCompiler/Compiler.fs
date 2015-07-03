@@ -1,4 +1,4 @@
-﻿module internal QuotationCompiler.Transformer
+﻿module internal QuotationCompiler.Compiler
 
 open System
 open System.Reflection
@@ -50,7 +50,7 @@ let convertExprToAst (compiledModuleName : string) (compiledFunctionName : strin
             | :? (byte[]) as bs when t = typeof<byte[]> -> SynExpr.Const(SynConst.Bytes(bs, range), range)
             | :? (uint16[]) as is when t = typeof<uint16[]> -> SynExpr.Const(SynConst.UInt16s is, range)
             // null literal support
-            | null when not <| t.GetCompilationRepresentationFlags().HasFlag CompilationRepresentationFlags.UseNullAsTrueValue ->
+            | null -> //when not <| t.GetCompilationRepresentationFlags().HasFlag CompilationRepresentationFlags.UseNullAsTrueValue ->
                 let synTy = sysTypeToSynType range t
                 SynExpr.Typed(SynExpr.Null range, synTy, range)
 

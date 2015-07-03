@@ -41,7 +41,7 @@ type QuotationCompiler =
             | Some cmn -> cmn
 
         let compiledFunctionName = defaultArg compiledFunctionName "compiledQuotation"
-        let dependencies, ast = Transformer.convertExprToAst compiledModuleName compiledFunctionName expr
+        let dependencies, ast = Compiler.convertExprToAst compiledModuleName compiledFunctionName expr
         {
             Tree = ast
             Dependencies = dependencies
