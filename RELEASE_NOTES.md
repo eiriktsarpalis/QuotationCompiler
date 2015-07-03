@@ -1,3 +1,6 @@
+### 0.0.4-alpha
+* Implement compiled expression caching.
+
 ### 0.0.3-alpha
 * Bugfix.
 
