@@ -16,14 +16,14 @@ type ExprEqualityComparer () =
     static let mutable exprConstInfoReader : MethodInfo option = None
     static let getExprConstInfo (o:obj) =
         match exprConstInfoReader with
-        | Some r -> r.Invoke(o, [||])
+        | Some m -> m.Invoke(o, [||])
         | None ->
             // ExprConstInfo is the first element of the boxed tuple (ExprConstInfo * Expr list)
             // that is returned by the ShapeCombination active pattern
-            let p = FSharpValue.PreComputeTuplePropertyInfo(o.GetType(), 0) |> fst
-            let r = p.GetGetMethod(true)
-            exprConstInfoReader <- Some r
-            r.Invoke(o, [||])
+            let p,_ = FSharpValue.PreComputeTuplePropertyInfo(o.GetType(), 0)
+            let m = p.GetGetMethod(true)
+            exprConstInfoReader <- Some m
+            m.Invoke(o, [||])
 
     static let rec areEqualExprs (e : Expr) (e' : Expr) =
         let areEqualVars (v : Var) (v' : Var) = v.Name = v'.Name && v.Type = v'.Type
