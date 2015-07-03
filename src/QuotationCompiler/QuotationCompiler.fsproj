@@ -55,6 +55,7 @@
     <Compile Include="Pickle.fs" />
     <Compile Include="Dependencies.fs" />
     <Compile Include="Transformer.fs" />
+    <Compile Include="ExprEqualityComparer.fs" />
     <Compile Include="QuotationCompiler.fs" />
     <None Include="Script.fsx" />
     <Content Include="app.config" />

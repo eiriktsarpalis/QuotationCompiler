@@ -69,6 +69,7 @@ namespace QuotationCompiler
 
 open System
 open System.Reflection
+open System.Collections.Concurrent
 open System.IO
 
 open Microsoft.FSharp.Quotations
@@ -79,7 +80,9 @@ open Microsoft.FSharp.Compiler.SimpleSourceCodeServices
 
 open QuotationCompiler.Utilities
 
-type QuotationCompiler =
+type QuotationCompiler private () =
+
+    static let compiledExprs = new ConcurrentDictionary<Expr, obj>(new ExprEqualityComparer())
 
     /// <summary>
     ///     Compiles provided quotation tree to assembly.
@@ -121,19 +124,27 @@ type QuotationCompiler =
     ///     Compiles provided quotation tree to function.
     /// </summary>
     /// <param name="expr">Quotation tree to be compiled.</param>
-    static member ToFunc(expr : Expr<'T>) : unit -> 'T =
-        let methodInfo = QuotationCompiler.ToDynamicAssembly expr
-        if typeof<'T> = typeof<unit> then
-            let action = wrapDelegate<Action>(methodInfo)
-            fun () -> action.Invoke() ; Unchecked.defaultof<'T>
+    /// <param name="useCache">Keep compiled functions for syntactically equal quotations in cache. Defaults to true.</param>
+    static member ToFunc(expr : Expr<'T>, ?useCache:bool) : unit -> 'T =
+        let useCache = defaultArg useCache true
+        let compile _ =
+            let methodInfo = QuotationCompiler.ToDynamicAssembly expr
+            if typeof<'T> = typeof<unit> then
+                let action = wrapDelegate<Action>(methodInfo)
+                fun () -> action.Invoke() ; Unchecked.defaultof<'T>
+            else
+                let func = wrapDelegate<Func<'T>>(methodInfo)
+                func.Invoke
+
+        if useCache then
+            compiledExprs.GetOrAdd(expr, compile >> box) :?> unit -> 'T
         else
-            let func = wrapDelegate<Func<'T>>(methodInfo)
-            func.Invoke
+            compile ()
 
     /// <summary>
     ///     Compiles provided quotation tree to value.
     /// </summary>
     /// <param name="expr">Quotation tree to be compiled.</param>
-    static member Eval(expr : Expr<'T>) : 'T =
-        let methodInfo = QuotationCompiler.ToDynamicAssembly expr
-        methodInfo.Invoke(null, [||]) :?> 'T
+    /// <param name="useCache">Keep compiled functions for syntactically equal quotations in cache. Defaults to true.</param>
+    static member Eval(expr : Expr<'T>, ?useCache : bool) : 'T =
+        QuotationCompiler.ToFunc(expr, ?useCache = useCache) ()
