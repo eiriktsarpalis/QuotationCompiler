@@ -25,6 +25,3 @@ let fib =
         @>
 
 fib 10
-
-QuotationCompiler.Eval <@ [||] : int [] @>
-QuotationCompiler.Eval <@ [|1;2;3|] @>
