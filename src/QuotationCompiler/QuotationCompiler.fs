@@ -33,15 +33,17 @@ type QuotationCompiler =
     /// <param name="expr">Quotation to be converted.</param>
     /// <param name="compiledModuleName">Name of compiled module containing AST.</param>
     /// <param name="compiledFunctionName">Name of compiled function name containing AST.</param>
+    /// <param name="serializer">Serializer used for pickling values spliced into expression trees. Defaults to BinaryFormatter.</param>
     /// <returns>Untyped AST and assembly dependencies.</returns>
-    static member ToParsedInput(expr : #Expr, ?compiledModuleName : string, ?compiledFunctionName : string) : QuotationAst =
+    static member ToParsedInput(expr : Expr, ?compiledModuleName : string, ?compiledFunctionName : string, ?serializer : IExprSerializer) : QuotationAst =
         let compiledModuleName =
             match compiledModuleName with
             | None -> sprintf "CompiledQuotationModule-%O" <| Guid.NewGuid()
             | Some cmn -> cmn
 
+        let serializer = match serializer with Some s -> s | None -> new BinaryFormatterExprSerializer() :> IExprSerializer
         let compiledFunctionName = defaultArg compiledFunctionName "compiledQuotation"
-        let dependencies, ast = Compiler.convertExprToAst compiledModuleName compiledFunctionName expr
+        let dependencies, ast = Compiler.convertExprToAst serializer compiledModuleName compiledFunctionName expr
         {
             Tree = ast
             Dependencies = dependencies
@@ -50,7 +52,6 @@ type QuotationCompiler =
         }
 
 #if DEBUG
-
     /// <summary>
     ///     Parses source code string into untyped assembly.
     /// </summary>

@@ -14,13 +14,20 @@ open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.Range
 
 open QuotationCompiler.Dependencies
-open QuotationCompiler.Pickle
+open QuotationCompiler.Utilities
+open QuotationCompiler.Utilities.Pickle
 
-/// Converts provided quotation to an untyped F# AST
-let convertExprToAst (compiledModuleName : string) (compiledFunctionName : string) (expr : Expr) =
+/// <summary>
+///     Converts provided quotation to an untyped F# AST
+/// </summary>
+/// <param name="serializer">Serializer used for pickling values spliced into expression trees.</param>
+/// <param name="compiledModuleName">Name of compiled module containing AST.</param>
+/// <param name="compiledFunctionName">Name of compiled function name containing AST.</param>
+/// <param name="expr">Expression to be converted.</param>
+/// <returns>Untyped AST and assembly dependencies.</returns>
+let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string) (compiledFunctionName : string) (expr : Expr) : Assembly list * ParsedInput =
 
     let dependencies = new DependencyContainer()
-    let serializer = new BinaryFormatterExprSerializer()
     let pickles = new PickledValueManager(serializer)
     let defaultRange = defaultArg (tryParseRange expr) range0
 

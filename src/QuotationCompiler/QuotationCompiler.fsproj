@@ -54,9 +54,9 @@
     <Compile Include="Types.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Pickle.fs" />
+    <Compile Include="ExprEqualityComparer.fs" />
     <Compile Include="Dependencies.fs" />
     <Compile Include="Compiler.fs" />
-    <Compile Include="ExprEqualityComparer.fs" />
     <Compile Include="QuotationCompiler.fs" />
     <None Include="Script.fsx" />
     <Content Include="app.config" />
