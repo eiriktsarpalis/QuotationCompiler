@@ -107,11 +107,12 @@ type QuotationCompiler private () =
 
         let assemblyName = match assemblyName with None -> sprintf "compiledQuotation_%s" (Guid.NewGuid().ToString("N")) | Some an -> an
         let targetDirectory = match targetDirectory with None -> Path.GetTempPath() | Some p -> p
-        let qast = QuotationCompiler.ToParsedInput(expr)
+        let qast = QuotationCompiler.ToParsedInput(expr, ?compiledModuleName = compiledModuleName, ?compiledFunctionName = compiledFunctionName)
         let dependencies = qast.Dependencies |> List.map (fun a -> a.Location)
         let location = Path.Combine(targetDirectory, assemblyName + ".dll")
+        let pdbFile = Path.Combine(targetDirectory, assemblyName + ".pdb")
         let sscs = new SimpleSourceCodeServices()
-        let errors, code = sscs.Compile([qast.Tree], assemblyName, location, dependencies, executable = false)
+        let errors, code = sscs.Compile([qast.Tree], assemblyName, location, dependencies, executable = false, pdbFile = pdbFile)
         if code = 0 then location
         else
             raise <| new QuotationCompilerException(printErrors errors)
