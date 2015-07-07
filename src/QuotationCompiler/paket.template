@@ -10,8 +10,6 @@ copyright
     Copyright 2015
 summary
     An F# quotation compilation library that uses FSharp.Compiler.Service
-licenseurl https://github.com/mbraceproject/MBrace.Core/blob/master/License.md
-projecturl http://www.m-brace.net/
-iconurl https://avatars2.githubusercontent.com/u/9674757
+projecturl https://www.github.com/eiriktsarpalis/QuotationCompiler
 tags
     F#, fsharp, quotations, compiler, FSharp.Compiler.Service, metaprogramming

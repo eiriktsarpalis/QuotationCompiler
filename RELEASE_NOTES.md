@@ -1,3 +1,6 @@
+### 0.0.6-alpha
+* Fix package issues.
+
 ### 0.0.5-alpha
 * Bugfix.
 
