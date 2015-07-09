@@ -1,3 +1,6 @@
+### 0.0.7-alpha
+* Update FSCS to latest version
+
 ### 0.0.6-alpha
 * Fix package issues.
 
