@@ -28,10 +28,10 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
-    <OutputPath>../../bin</OutputPath>
+    <OutputPath>..\..\bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>../../bin\QuotationCompiler.Tests.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\Release\QuotationCompiler.Tests.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
@@ -133,6 +133,28 @@
   <ItemGroup>
     <Reference Include="nunit.framework">
       <HintPath>..\..\packages\NUnit\lib\nunit.framework.dll</HintPath>
+      <Private>True</Private>
+      <Paket>True</Paket>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="NUnit.VisualStudio.TestAdapter">
+      <HintPath>..\..\packages\NUnitTestAdapter\lib\NUnit.VisualStudio.TestAdapter.dll</HintPath>
+      <Private>True</Private>
+      <Paket>True</Paket>
+    </Reference>
+    <Reference Include="nunit.core">
+      <HintPath>..\..\packages\NUnitTestAdapter\lib\nunit.core.dll</HintPath>
+      <Private>True</Private>
+      <Paket>True</Paket>
+    </Reference>
+    <Reference Include="nunit.core.interfaces">
+      <HintPath>..\..\packages\NUnitTestAdapter\lib\nunit.core.interfaces.dll</HintPath>
+      <Private>True</Private>
+      <Paket>True</Paket>
+    </Reference>
+    <Reference Include="nunit.util">
+      <HintPath>..\..\packages\NUnitTestAdapter\lib\nunit.util.dll</HintPath>
       <Private>True</Private>
       <Paket>True</Paket>
     </Reference>

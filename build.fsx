@@ -3,11 +3,11 @@
 // --------------------------------------------------------------------------------------
 
 #I "packages/FAKE/tools"
-#r "packages/FAKE/tools/FakeLib.dll"
+#r "FakeLib.dll"
 
 open System
 open System.IO
-
+open Fake.AppVeyor
 open Fake 
 open Fake.Git
 open Fake.ReleaseNotesHelper
@@ -24,8 +24,8 @@ let gitName = "QuotationCompiler"
 let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/nessos"
 
 
-let testAssemblies = ["bin/QuotationCompiler.Tests.dll"]
 
+let testAssemblies = "bin/Release/*Tests*.dll"
 //
 //// --------------------------------------------------------------------------------------
 //// The rest of the code is standard F# build script 
@@ -64,30 +64,30 @@ Target "AssemblyInfo" (fun _ ->
 )
 
 
-Target "Build" (fun () ->
+Target "Build" (fun _ ->
     // Build the rest of the project
     { BaseDirectory = __SOURCE_DIRECTORY__
       Includes = [ project + ".sln" ]
       Excludes = [] } 
-    |> MSBuild "" "Build" ["Configuration", configuration]
-    |> Log "AppBuild-Output: ")
+    |> MSBuildRelease "" "Rebuild"
+    |> Log "AppBuild-Output: "
+)
+
 
 // --------------------------------------------------------------------------------------
 // Run the unit tests using test runner & kill test runner when complete
 
 Target "RunTests" (fun _ ->
-    let nunitVersion = GetPackageVersion "packages" "NUnit.Runners"
-    let nunitPath = sprintf "packages/NUnit.Runners.%s/tools" nunitVersion
-    ActivateFinalTarget "CloseTestRunner"
-
-    testAssemblies
-    |> NUnit (fun p ->
-        { p with
-            Framework = "v4.0.30319"
-            ToolPath = nunitPath
-            DisableShadowCopy = true
-            TimeOut = TimeSpan.FromMinutes 20.
-            OutputFile = "TestResults.xml" })
+    try 
+        !! testAssemblies
+        |> NUnit (fun p ->
+            { p with
+                Framework = "v4.0"
+                DisableShadowCopy = true
+                TimeOut = TimeSpan.FromMinutes 20.
+                OutputFile = "bin/TestResults.xml" })
+    finally
+        AppVeyor.UploadTestResultsXml AppVeyor.TestResultsType.NUnit "bin"
 )
 
 //// --------------------------------------------------------------------------------------
@@ -104,10 +104,6 @@ Target "NuGet" (fun _ ->
 
 Target "NuGetPush" (fun _ -> Paket.Push (fun p -> { p with WorkingDir = "bin/" }))
 
-
-FinalTarget "CloseTestRunner" (fun _ ->  
-    ProcessHelper.killProcess "nunit-agent.exe"
-)
 
 // --------------------------------------------------------------------------------------
 // Run all targets by default. Invoke 'build <Target>' to override
