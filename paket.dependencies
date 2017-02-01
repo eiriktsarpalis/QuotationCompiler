@@ -1,11 +1,14 @@
 source https://www.nuget.org/api/v2/
+redirects on
 
-nuget FSharp.Compiler.Service >= 1.3.1
-nuget FsPickler >= 1.2.9
+nuget FSharp.Compiler.Service
+nuget FsPickler
 nuget FSharp.Quotations.Evaluator
-nuget FsUnit 1.3.0.1
+nuget FsUnit
+nuget NUnit
 nuget NUnit.Runners
 nuget Nuget.CommandLine
-nuget Unquote 2.2.2
+nuget Unquote
 nuget FAKE
 nuget nunittestadapter
+nuget FSharp.Core

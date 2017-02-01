@@ -200,7 +200,7 @@ let ``2. Simple enumerating for loop`` () =
     compileRun 
         <@
             let x = ref 0
-            for i in [1 .. 100] do
+            for _ in [1 .. 100] do
                 incr x
             !x
         @>
@@ -213,7 +213,7 @@ let ``2. Simple try/with`` () =
             try 1 / 0
             with
             | :? System.DivideByZeroException -> -1
-            | e -> -20
+            | _ -> -20
         @>
     |> should equal -1
 

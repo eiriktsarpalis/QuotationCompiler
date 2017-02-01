@@ -12,6 +12,7 @@ open Fake
 open Fake.Git
 open Fake.ReleaseNotesHelper
 open Fake.AssemblyInfoFile
+open Fake.Testing
 
 // --------------------------------------------------------------------------------------
 // Information about the project to be used at NuGet and in AssemblyInfo files
@@ -80,12 +81,11 @@ Target "Build" (fun _ ->
 Target "RunTests" (fun _ ->
     try 
         !! testAssemblies
-        |> NUnit (fun p ->
+        |> NUnit3 (fun p ->
             { p with
-                Framework = "v4.0"
-                DisableShadowCopy = true
+                ShadowCopy = false
                 TimeOut = TimeSpan.FromMinutes 20.
-                OutputFile = "bin/TestResults.xml" })
+                ResultSpecs = ["bin/TestResults.xml"] })
     finally
         AppVeyor.UploadTestResultsXml AppVeyor.TestResultsType.NUnit "bin"
 )
