@@ -62,6 +62,14 @@
     <None Include="perf.fsx" />
     <Content Include="paket.references" />
     <Content Include="app.config" />
+    <None Include="..\..\packages\FSharp.Core\lib\net40\FSharp.Core.optdata">
+      <Link>FSharp.Core.optdata</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\packages\FSharp.Core\lib\net40\FSharp.Core.sigdata">
+      <Link>FSharp.Core.sigdata</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
