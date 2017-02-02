@@ -311,9 +311,9 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             let synIdent = SynExpr.Ident(ident)
             let patterns = 
                 [ 
-                    for i in 0 .. idx - 1 -> SynPat.Wild range
+                    for _i in 0 .. idx - 1 -> SynPat.Wild range
                     yield SynPat.Named(SynPat.Wild range, ident, false, None, range)
-                    for i in idx + 1 .. arity - 1 -> SynPat.Wild range
+                    for _i in idx + 1 .. arity - 1 -> SynPat.Wild range
                 ]
 
             let synPat = SynPat.Tuple(patterns, range)
@@ -411,7 +411,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             let synBody = exprToAst body
             SynExpr.For(SequencePointAtForLoop range, varIdent, synStartExpr, true, synEndExpr, synBody, range)
 
-        | Quote q -> 
+        | QuoteTyped q -> 
             let synQuote = exprToAst q
             let ident = SynExpr.Ident(mkIdent range "op_Quotation")
             SynExpr.Quote(ident, false, synQuote, false, range)
@@ -442,8 +442,8 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
         SynModuleDecl.Let(false, [binding], range0)
 
     let moduleDeclsToParsedInput (decls : SynModuleDecl list) =
-        let modl = SynModuleOrNamespace([mkIdent defaultRange compiledModuleName], true, decls, PreXmlDoc.Empty,[], None, defaultRange)
-        let file = ParsedImplFileInput("/QuotationCompiler.fs", false, QualifiedNameOfFile(mkIdent defaultRange compiledModuleName), [],[], [modl],false)
+        let modl = SynModuleOrNamespace([mkIdent defaultRange compiledModuleName], false, true, decls, PreXmlDoc.Empty,[], None, defaultRange)
+        let file = ParsedImplFileInput("/QuotationCompiler.fs", false, QualifiedNameOfFile(mkIdent defaultRange compiledModuleName), [],[], [modl], ((* isLastCompiland *) true, (* isExe *) false))
         ParsedInput.ImplFile file
 
     let synExpr = expr |> exprToAst |> synExprToLetBinding

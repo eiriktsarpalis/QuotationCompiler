@@ -30,7 +30,7 @@ type UnionWithProperty2 =
 with
     member this.Convert = 
         match this with
-        | Red i -> "happy"
+        | Red _ -> "happy"
         | Green _ -> "sad"
         | Black -> "neutral"
         | Orange _ -> "wow"
