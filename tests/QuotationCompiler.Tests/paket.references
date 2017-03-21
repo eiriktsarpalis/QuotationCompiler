@@ -1,7 +1,7 @@
 FSharp.Core
 FSharp.Compiler.Service
 FSharp.Quotations.Evaluator
-FsUnit
-NUnit
+xunit
+xunit.abstractions
+xunit.runner.visualstudio
 Unquote
-nunittestadapter

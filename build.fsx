@@ -9,10 +9,10 @@ open System
 open System.IO
 open Fake.AppVeyor
 open Fake 
-open Fake.Git
 open Fake.ReleaseNotesHelper
 open Fake.AssemblyInfoFile
 open Fake.Testing
+open Fake.Testing.XUnit2
 
 // --------------------------------------------------------------------------------------
 // Information about the project to be used at NuGet and in AssemblyInfo files
@@ -81,13 +81,14 @@ Target "Build" (fun _ ->
 Target "RunTests" (fun _ ->
     try 
         !! testAssemblies
-        |> NUnit3 (fun p ->
+        |> xUnit2 (fun p ->
             { p with
                 ShadowCopy = false
                 TimeOut = TimeSpan.FromMinutes 20.
-                ResultSpecs = ["bin/TestResults.xml"] })
+                Parallel = ParallelMode.All
+                HtmlOutputPath = Some "xunit.xml" })
     finally
-        AppVeyor.UploadTestResultsXml AppVeyor.TestResultsType.NUnit "bin"
+        AppVeyor.UploadTestResultsXml AppVeyor.TestResultsType.Xunit "bin"
 )
 
 //// --------------------------------------------------------------------------------------
