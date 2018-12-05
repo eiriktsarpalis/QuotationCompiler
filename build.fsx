@@ -2,7 +2,7 @@
 // FAKE build script 
 // --------------------------------------------------------------------------------------
 
-#I "packages/FAKE/tools"
+#I "packages/build/FAKE/tools"
 #r "FakeLib.dll"
 
 open System
@@ -12,7 +12,7 @@ open Fake
 open Fake.ReleaseNotesHelper
 open Fake.AssemblyInfoFile
 open Fake.Testing
-open Fake.Testing.XUnit2
+open Fake.DotNetCli
 
 // --------------------------------------------------------------------------------------
 // Information about the project to be used at NuGet and in AssemblyInfo files
@@ -24,9 +24,9 @@ let gitHome = "https://github.com/eiriktsarpalis"
 let gitName = "QuotationCompiler"
 let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/nessos"
 
+let nugetProjects = !! "src/QuotationCompiler/**.??proj"
+let testProjects = !! "tests/**.??proj"
 
-
-let testAssemblies = "bin/Release/*Tests*.dll"
 //
 //// --------------------------------------------------------------------------------------
 //// The rest of the code is standard F# build script 
@@ -78,29 +78,59 @@ Target "Build" (fun _ ->
 // --------------------------------------------------------------------------------------
 // Run the unit tests using test runner & kill test runner when complete
 
+let runTests config (proj : string) =
+    if EnvironmentHelper.isWindows then
+        DotNetCli.Test (fun c ->
+            { c with
+                Project = proj
+                Configuration = config })
+    else
+        // work around xunit/mono issue
+        let projDir = Path.GetDirectoryName proj
+        let projName = Path.GetFileNameWithoutExtension proj
+        let netcoreFrameworks, legacyFrameworks = 
+            !! (projDir @@ "bin" @@ config @@ "*/")
+            |> Seq.map Path.GetFileName
+            |> Seq.toArray
+            |> Array.partition 
+                (fun f -> 
+                    f.StartsWith "netcore" || 
+                    f.StartsWith "netstandard")
+
+        for framework in netcoreFrameworks do
+            DotNetCli.Test (fun c ->
+                { c with
+                    Project = proj
+                    Framework = framework
+                    Configuration = config })
+
+        for framework in legacyFrameworks do
+            let assembly = projDir @@ "bin" @@ config @@ framework @@ projName + ".dll"
+            !! assembly
+            |> xUnit2 (fun c ->
+                { c with
+                    Parallel = ParallelMode.Collections
+                    TimeOut = TimeSpan.FromMinutes 20. })
+
 Target "RunTests" (fun _ ->
-    try 
-        !! testAssemblies
-        |> xUnit2 (fun p ->
-            { p with
-                ShadowCopy = false
-                TimeOut = TimeSpan.FromMinutes 20.
-                Parallel = ParallelMode.All
-                HtmlOutputPath = Some "xunit.xml" })
-    finally
-        AppVeyor.UploadTestResultsXml AppVeyor.TestResultsType.Xunit "bin"
-)
+    for proj in testProjects do
+        runTests "Release" proj)
 
 //// --------------------------------------------------------------------------------------
 //// Build a NuGet package
 
-Target "NuGet" (fun _ ->    
-    Paket.Pack (fun p -> 
-        { p with 
-            ToolPath = ".paket/paket.exe" 
-            OutputPath = "bin/"
-            Version = release.NugetVersion
-            ReleaseNotes = toLines release.Notes })
+Target "NuGet" (fun _ ->
+    for proj in nugetProjects do
+        DotNetCli.Pack(fun p ->
+            { p with
+                Configuration = configuration
+                Project = proj
+                AdditionalArgs = 
+                    [ yield "--no-build" ; 
+                      yield "--no-dependencies" ; 
+                      yield sprintf "-p:Version=%O" release.NugetVersion ]
+                OutputPath = __SOURCE_DIRECTORY__ @@ "artifacts"
+            })
 )
 
 Target "NuGetPush" (fun _ -> Paket.Push (fun p -> { p with WorkingDir = "bin/" }))

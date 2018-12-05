@@ -1,18 +1,17 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{8E0FA4F9-0E46-4E2D-B0DC-E9EE874F7FB7}"
 	ProjectSection(SolutionItems) = preProject
-		.paket\paket.bootstrapper.exe = .paket\paket.bootstrapper.exe
 		paket.dependencies = paket.dependencies
 		paket.lock = paket.lock
-		.paket\paket.targets = .paket\paket.targets
+		.paket\Paket.Restore.targets = .paket\Paket.Restore.targets
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "QuotationCompiler", "src\QuotationCompiler\QuotationCompiler.fsproj", "{FE673FCD-C216-4742-8BA5-808571745433}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QuotationCompiler", "src\QuotationCompiler\QuotationCompiler.fsproj", "{FE673FCD-C216-4742-8BA5-808571745433}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "QuotationCompiler.Tests", "tests\QuotationCompiler.Tests\QuotationCompiler.Tests.fsproj", "{33EA3F7C-A6E0-407B-8FAE-1C1F5EA213E7}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QuotationCompiler.Tests", "tests\QuotationCompiler.Tests\QuotationCompiler.Tests.fsproj", "{33EA3F7C-A6E0-407B-8FAE-1C1F5EA213E7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "project", "project", "{6DF138D4-3902-4E9E-BDF8-6CFEB16BECA6}"
 	ProjectSection(SolutionItems) = preProject
@@ -42,5 +41,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0420AC0F-4865-4799-BD68-51F18B13094C}
 	EndGlobalSection
 EndGlobal

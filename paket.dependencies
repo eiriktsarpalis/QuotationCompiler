@@ -1,18 +1,20 @@
-framework: >= net45
 source https://api.nuget.org/v3/index.json
+framework: net461, netstandard2.0, netcoreapp2.1
 redirects: on
 
-nuget FSharp.Compiler.Service >= 11.0 lowest_matching: true
-nuget FsPickler ~> 3.0
-nuget FSharp.Core >= 4.0 lowest_matching: true
+nuget FSharp.Compiler.Service >= 25 lowest_matching: true
+nuget FSharp.Core >= 4.3 lowest_matching: true
+nuget FsPickler >= 5.0 lowest_matching: true
 
 # testing
-nuget Unquote
-nuget xunit ~> 2.1.0
-nuget xunit.abstractions
-nuget xunit.runner.console ~> 2.1.0
-nuget xunit.runner.visualstudio ~> 2.1.0 version_in_path: true
+nuget Unquote ~> 4.0
+nuget FSharp.Quotations.Evaluator ~> 1.1
+nuget xunit ~> 2.4
+nuget xunit.runner.console ~> 2.4
+nuget xunit.runner.visualstudio ~> 2.4 version_in_path: true
 
-# misc dependencies
-nuget FSharp.Quotations.Evaluator
-nuget FAKE
+group Build
+  source https://api.nuget.org/v3/index.json
+  framework: net461
+
+  nuget FAKE ~> 4.0
