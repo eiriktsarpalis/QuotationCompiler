@@ -30,7 +30,6 @@
     <Compile Include="QuotationCompiler.fs" />
     <None Include="Script.fsx" />
     <None Include="paket.references" />
-    <None Include="paket.template" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
