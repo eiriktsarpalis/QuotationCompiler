@@ -17,7 +17,7 @@ module internal Utils =
 
     let inline notImpl<'T> e : 'T = raise <| new NotImplementedException(sprintf "%O" e)
 
-    let hset (ts : seq<'T>) = new System.Collections.Generic.HashSet<_>(ts)
+    let isDotNetFramework = typeof<int>.Assembly.GetName().Name = "mscorlib"
 
     let isListType (t : Type) =
         t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<list<_>>
@@ -46,10 +46,7 @@ module internal Utils =
 
     type MemberInfo with
         member m.TryGetCustomAttribute<'Attr when 'Attr :> System.Attribute> () =
-            let attrs = m.GetCustomAttributes<'Attr> ()
-            if Seq.isEmpty attrs then None
-            else
-                Some(Seq.head attrs)
+            m.GetCustomAttributes<'Attr> () |> Seq.tryHead
 
         member m.ContainsAttribute<'Attr when 'Attr :> System.Attribute> () =
             m.GetCustomAttributes<'Attr> () |> Seq.isEmpty |> not
@@ -210,19 +207,19 @@ module internal Utils =
     /// Type existential container
     [<AbstractClass>]
     type Existential internal () =
+        static let genTy = typedefof<Existential<_>>
+
         /// System.Type representation of type
         abstract Type : Type
         /// Accepts a generic thunk to encapsulated type
         abstract Apply<'R> : IFunc<'R> -> 'R
-        /// Accepts a generic asynchronous thunk to encapsulated type
-        abstract Apply<'R> : IAsyncFunc<'R> -> Async<'R>
 
         /// <summary>
         ///     Use reflection to initialize an encapsulated type.
         /// </summary>
         /// <param name="t"></param>
         static member FromType(t : Type) =
-            let et = typedefof<Existential<_>>.MakeGenericType [|t|]
+            let et = genTy.MakeGenericType [|t|]
             let ctor = et.GetConstructor [||]
             ctor.Invoke [||] :?> Existential
 
@@ -230,20 +227,15 @@ module internal Utils =
     and [<Sealed; AutoSerializable(true)>] Existential<'T> () =
         inherit Existential()
 
-        override e.Type = typeof<'T>
-        override e.Apply<'R> (f : IFunc<'R>) = f.Invoke<'T> ()
-        override e.Apply<'R> (f : IAsyncFunc<'R>) = f.Invoke<'T> ()
-        override e.Equals(other:obj) =
+        override __.Type = typeof<'T>
+        override __.Apply<'R> (f : IFunc<'R>) = f.Invoke<'T> ()
+        override __.Equals(other:obj) =
             match other with
             | :? Existential<'T> -> true
             | _ -> false
 
-        override e.GetHashCode() = typeof<'T>.GetHashCode()
+        override __.GetHashCode() = typeof<'T>.GetHashCode()
 
     /// Generic function
     and IFunc<'R> =
         abstract Invoke<'T> : unit -> 'R
-
-    /// Generic asynchronous function
-    and IAsyncFunc<'R> =
-        abstract Invoke<'T> : unit -> Async<'R>

@@ -72,4 +72,4 @@ module internal Pickle =
                 let entry = container.[id] in entry.Ident
 
         /// Returns all cached values
-        member __.PickledValues = container |> Seq.map(function (KeyValue(_,v)) -> v) |> Seq.toList
+        member __.PickledValues = container.Values |> Seq.toList

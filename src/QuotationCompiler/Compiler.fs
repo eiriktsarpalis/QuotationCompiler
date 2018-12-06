@@ -61,7 +61,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                 let synTy = sysTypeToSynType range t
                 SynExpr.Typed(SynExpr.Null range, synTy, range)
 
-            | _ -> 
+            | _ ->
                 let ident = pickles.Append(obj, t)                
                 SynExpr.Ident(ident)
 
@@ -173,7 +173,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             SynExpr.New(false, synType, synParam, range)
 
         | NewObject(ctorInfo, args) ->
-            dependencies.Append ctorInfo.DeclaringType
+            dependencies.Append ctorInfo
             let synType = sysTypeToSynType range ctorInfo.DeclaringType
             let synArgs = List.map exprToAst args
             let paramInfo = ctorInfo.GetOptionalParameterInfo()
@@ -261,7 +261,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [matchClause ; notMatchClause], false, range)
 
         | Call(instance, methodInfo, args) ->
-            dependencies.Append methodInfo.DeclaringType
+            dependencies.Append methodInfo
             let synArgs = List.map exprToAst args
             let paramInfo = methodInfo.GetOptionalParameterInfo()
             let synArgs = List.map2 (mkArgumentBinding range) paramInfo synArgs |> List.toArray
@@ -328,7 +328,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             SynExpr.LibraryOnlyUnionCaseFieldGet(synInstance, uciIdent, position, range)
             
         | PropertyGet(instance, propertyInfo, []) ->
-            dependencies.Append propertyInfo.DeclaringType
+            dependencies.Append propertyInfo
             match instance with
             | None -> sysMemberToSynMember range propertyInfo
             | Some inst ->
@@ -337,7 +337,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                 SynExpr.DotGet(sysInst, range, liwd, range)
 
         | PropertyGet(instance, propertyInfo, indexers) ->
-            dependencies.Append propertyInfo.DeclaringType
+            dependencies.Append propertyInfo
             let synIndexer = 
                 match List.map exprToAst indexers with
                 | [one] -> SynIndexerArg.One(one)
@@ -352,7 +352,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                 SynExpr.DotIndexedGet(synInst, [synIndexer], range, range)
 
         | PropertySet(instance, propertyInfo, [], value) ->
-            dependencies.Append propertyInfo.DeclaringType
+            dependencies.Append propertyInfo
             let synValue = exprToAst value
             match instance with
             | None ->
@@ -363,7 +363,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                 SynExpr.DotSet(synInst, LongIdentWithDots([mkIdent range propertyInfo.Name], []), synValue, range)
 
         | PropertySet(instance, propertyInfo, indexers, value) ->
-            dependencies.Append propertyInfo.DeclaringType
+            dependencies.Append propertyInfo
             let synValue = exprToAst value
             let synIndexer = 
                 match List.map exprToAst indexers with
@@ -380,7 +380,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                 SynExpr.DotIndexedSet(synInst, [synIndexer], synValue, range, range, range)
 
         | FieldGet(instance, fieldInfo) ->
-            dependencies.Append fieldInfo.DeclaringType
+            dependencies.Append fieldInfo
             match instance with
             | None -> sysMemberToSynMember range fieldInfo
             | Some inst ->
@@ -388,7 +388,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                 SynExpr.DotGet(synInst, range, mkLongIdent range [mkIdent range (getFSharpName fieldInfo)], range)
 
         | FieldSet(instance, fieldInfo, value) ->
-            dependencies.Append fieldInfo.DeclaringType
+            dependencies.Append fieldInfo
             let synValue = exprToAst value
             match instance with
             | None ->

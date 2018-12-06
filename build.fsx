@@ -28,8 +28,8 @@ let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/" + gitOwner
 
 let configuration = environVarOrDefault "Configuration" "Release"
 let artifactsFolder = __SOURCE_DIRECTORY__ @@ "artifacts"
-let nugetProjects = !! "src/QuotationCompiler/**.??proj"
-let testProjects = !! "tests/**.??proj"
+let nugetProjects = !! "src/QuotationCompiler/*.??proj"
+let testProjects = !! "tests/**/*.??proj"
 
 //
 // --------------------------------------------------------------------------------------
