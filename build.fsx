@@ -28,9 +28,9 @@ let nugetProjects = !! "src/QuotationCompiler/**.??proj"
 let testProjects = !! "tests/**.??proj"
 
 //
-//// --------------------------------------------------------------------------------------
-//// The rest of the code is standard F# build script 
-//// --------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
+// The rest of the code is standard F# build script 
+// --------------------------------------------------------------------------------------
 
 //// Read release notes & version info from RELEASE_NOTES.md
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
@@ -48,8 +48,8 @@ Target "Clean" (fun _ ->
 )
 
 //
-//// --------------------------------------------------------------------------------------
-//// Build library & test project
+// --------------------------------------------------------------------------------------
+// Build library & test project
 
 let configuration = environVarOrDefault "Configuration" "Release"
 
@@ -64,17 +64,20 @@ Target "AssemblyInfo" (fun _ ->
     CreateFSharpAssemblyInfo "src/QuotationCompiler/AssemblyInfo.fs" attrs
 )
 
+Target "DotNet.Restore" (fun _ -> DotNetCli.Restore id)
+
 Target "Build" (fun _ ->
-    DotNetCli.Build(fun c -> 
-        { c with
-            Project = __SOURCE_DIRECTORY__
-            Configuration = configuration 
-        })
+    // Build the rest of the project
+    { BaseDirectory = __SOURCE_DIRECTORY__
+      Includes = [ project + ".sln" ]
+      Excludes = [] } 
+    |> MSBuild "" "Build" ["Configuration", configuration; "SourceLinkCreate", "true"]
+    |> Log "AppBuild-Output: "
 )
 
 
 // --------------------------------------------------------------------------------------
-// Run the unit tests using test runner & kill test runner when complete
+// Run the unit tests
 
 let runTests config (proj : string) =
     if EnvironmentHelper.isWindows then
@@ -114,8 +117,8 @@ Target "RunTests" (fun _ ->
     for proj in testProjects do
         runTests "Release" proj)
 
-//// --------------------------------------------------------------------------------------
-//// Build a NuGet package
+// --------------------------------------------------------------------------------------
+// Build a NuGet package
 
 Target "NuGet" (fun _ ->
     for proj in nugetProjects do
@@ -144,6 +147,7 @@ Target "Release" DoNothing
 "Clean"
   ==> "AssemblyInfo"
   ==> "Prepare"
+  ==> "DotNet.Restore"
   ==> "Build"
   ==> "RunTests"
   ==> "Default"
