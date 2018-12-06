@@ -4,7 +4,6 @@ redirects: on
 
 nuget FSharp.Compiler.Service >= 25 lowest_matching: true
 nuget FSharp.Core >= 4.3 lowest_matching: true
-nuget FsPickler >= 5.0 lowest_matching: true
 
 # testing
 nuget Unquote ~> 4.0

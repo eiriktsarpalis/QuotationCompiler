@@ -25,6 +25,8 @@ let gitHome = "https://github.com/eiriktsarpalis"
 let gitName = "QuotationCompiler"
 let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/eiriktsarpalis"
 
+let configuration = environVarOrDefault "Configuration" "Release"
+let artifactsFolder = __SOURCE_DIRECTORY__ @@ "artifacts"
 let nugetProjects = !! "src/QuotationCompiler/**.??proj"
 let testProjects = !! "tests/**.??proj"
 
@@ -36,8 +38,6 @@ let testProjects = !! "tests/**.??proj"
 //// Read release notes & version info from RELEASE_NOTES.md
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 let release = parseReleaseNotes (IO.File.ReadAllLines "RELEASE_NOTES.md")
-let nugetVersion = release.NugetVersion
-
 
 // --------------------------------------------------------------------------------------
 // Clean build results
@@ -51,8 +51,6 @@ Target "Clean" (fun _ ->
 //
 // --------------------------------------------------------------------------------------
 // Build library & test project
-
-let configuration = environVarOrDefault "Configuration" "Release"
 
 // Generate assembly info files with the right version & up-to-date information
 Target "AssemblyInfo" (fun _ ->
@@ -147,11 +145,11 @@ Target "NuGet" (fun _ ->
                     [ yield "--no-build" ; 
                       yield "--no-dependencies" ; 
                       yield sprintf "-p:Version=%O" release.NugetVersion ]
-                OutputPath = __SOURCE_DIRECTORY__ @@ "artifacts"
+                OutputPath = artifactsFolder
             })
 )
 
-Target "NuGetPush" (fun _ -> Paket.Push (fun p -> { p with WorkingDir = "bin/" }))
+Target "NuGetPush" (fun _ -> Paket.Push (fun p -> { p with WorkingDir = artifactsFolder }))
 
 
 // --------------------------------------------------------------------------------------

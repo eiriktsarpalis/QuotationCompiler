@@ -61,5 +61,5 @@ The library currently has a few limitations
 
 Head (branch `master`), Build & Unit tests
 
-* Windows/.NET [![Build status](https://ci.appveyor.com/api/projects/status/79arr40vmvtt5tb9/branch/master?svg=true)](https://ci.appveyor.com/project/nessos/quotationcompiler/branch/master)
-* Mac OS X/Mono 3.10 [![Build Status](https://travis-ci.org/eiriktsarpalis/QuotationCompiler.png?branch=master)](https://travis-ci.org/eiriktsarpalis/QuotationCompiler/branches)
+* Windows [![Build status](https://ci.appveyor.com/api/projects/status/79arr40vmvtt5tb9/branch/master?svg=true)](https://ci.appveyor.com/project/nessos/quotationcompiler/branch/master)
+* Linux [![Build Status](https://travis-ci.org/eiriktsarpalis/QuotationCompiler.png?branch=master)](https://travis-ci.org/eiriktsarpalis/QuotationCompiler/branches)
