@@ -13,6 +13,15 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
   </PropertyGroup>
+  <!-- NuGet metadata -->
+  <PropertyGroup>
+    <Summary>An F# quotation compilation library that uses FSharp.Compiler.Service.</Summary>
+    <Description>
+      A small library for compiling code quotations using the F# compiler service.
+      Its primary functionality is transforming quotation trees to untyped ASTs used by the F# compiler.
+      Since code is generated using the F# compiler proper, the end result is fully efficient and optimized.
+    </Description>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Types.fs" />

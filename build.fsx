@@ -19,10 +19,11 @@ open Fake.DotNetCli
 // --------------------------------------------------------------------------------------
 
 let project = "QuotationCompiler"
+let summary = "An F# quotation compilation library that uses FSharp.Compiler.Service"
 
 let gitHome = "https://github.com/eiriktsarpalis"
 let gitName = "QuotationCompiler"
-let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/nessos"
+let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/eiriktsarpalis"
 
 let nugetProjects = !! "src/QuotationCompiler/**.??proj"
 let testProjects = !! "tests/**.??proj"
@@ -55,13 +56,29 @@ let configuration = environVarOrDefault "Configuration" "Release"
 
 // Generate assembly info files with the right version & up-to-date information
 Target "AssemblyInfo" (fun _ ->
-    let attrs =
-        [ 
-            Attribute.Version release.AssemblyVersion
-            Attribute.FileVersion release.AssemblyVersion
-        ] 
+    let getAssemblyInfoAttributes projectName =
+        [ Attribute.Title projectName
+          Attribute.Product project
+          Attribute.Description summary
+          Attribute.Version release.AssemblyVersion
+          Attribute.FileVersion release.AssemblyVersion ]
 
-    CreateFSharpAssemblyInfo "src/QuotationCompiler/AssemblyInfo.fs" attrs
+    let getProjectDetails projectPath =
+        let projectName = System.IO.Path.GetFileNameWithoutExtension(projectPath)
+        ( projectPath,
+          projectName,
+          System.IO.Path.GetDirectoryName(projectPath),
+          (getAssemblyInfoAttributes projectName)
+        )
+
+    !! "src/**/*.??proj"
+    |> Seq.map getProjectDetails
+    |> Seq.iter (fun (projFileName, projectName, folderName, attributes) ->
+        match projFileName with
+        | Fsproj -> CreateFSharpAssemblyInfo (folderName </> "AssemblyInfo.fs") attributes
+        | Csproj -> CreateCSharpAssemblyInfo ((folderName </> "Properties") </> "AssemblyInfo.cs") attributes
+        | Vbproj -> CreateVisualBasicAssemblyInfo ((folderName </> "My Project") </> "AssemblyInfo.vb") attributes
+        | Shproj -> ())
 )
 
 Target "DotNet.Restore" (fun _ -> DotNetCli.Restore id)
