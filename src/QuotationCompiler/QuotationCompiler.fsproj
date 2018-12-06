@@ -11,7 +11,7 @@
     <id>QuotationCompiler</id>
     <Authors>Eirik Tsarpalis</Authors>
     <Copyright>Copyright 2018</Copyright>
-    <Description>A small library for compiling F# code quotations using the F# compiler service. Its primary functionality is transforming quotation trees to untyped ASTs used by the F# compiler. Since code is generated using the F# compiler proper, the end result is fully efficient and optimized.</Description>
+    <Description>A small library for compiling F# code quotations using FSharp.Compiler.Service as a backend. Its primary functionality is transforming quotation trees to untyped ASTs used by the F# compiler. Since code is generated using the F# compiler proper, the end result is fully efficient and optimized.</Description>
     <PackageProjectUrl>https://www.github.com/eiriktsarpalis/QuotationCompiler</PackageProjectUrl>
     <RepositoryUrl>https://www.github.com/eiriktsarpalis/QuotationCompiler</RepositoryUrl>
     <PackageLicenseUrl>https://www.github.com/eiriktsarpalis/QuotationCompiler/blob/master/License.md</PackageLicenseUrl>

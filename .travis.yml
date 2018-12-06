@@ -12,4 +12,4 @@ dotnet: 2.1.500
 
 script:
   - dotnet --info
-  - ./build.sh # Release -- dotnet pack not working for net461 on linux
+  - ./build.sh # Bundle -- dotnet pack not working for net461 on linux

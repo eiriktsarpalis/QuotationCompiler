@@ -7,8 +7,8 @@
 
 open System
 open System.IO
-open Fake.AppVeyor
-open Fake 
+open Fake
+open Fake.Git
 open Fake.ReleaseNotesHelper
 open Fake.AssemblyInfoFile
 open Fake.Testing
@@ -23,7 +23,8 @@ let summary = "An F# quotation compilation library that uses FSharp.Compiler.Ser
 
 let gitHome = "https://github.com/eiriktsarpalis"
 let gitName = "QuotationCompiler"
-let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/eiriktsarpalis"
+let gitOwner = "eiriktsarpalis"
+let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/" + gitOwner
 
 let configuration = environVarOrDefault "Configuration" "Release"
 let artifactsFolder = __SOURCE_DIRECTORY__ @@ "artifacts"
@@ -149,7 +150,49 @@ Target "NuGet" (fun _ ->
             })
 )
 
+//--------------------------------------------
+// Release Targets
+
 Target "NuGetPush" (fun _ -> Paket.Push (fun p -> { p with WorkingDir = artifactsFolder }))
+
+#load "paket-files/build/fsharp/FAKE/modules/Octokit/Octokit.fsx"
+open Octokit
+
+Target "ReleaseGithub" (fun _ ->
+    let remote =
+        Git.CommandHelper.getGitResult "" "remote -v"
+        |> Seq.filter (fun (s: string) -> s.EndsWith("(push)"))
+        |> Seq.tryFind (fun (s: string) -> s.Contains(gitOwner + "/" + gitName))
+        |> function None -> gitHome + "/" + gitName | Some (s: string) -> s.Split().[0]
+
+    //StageAll ""
+    Git.Commit.Commit "" (sprintf "Bump version to %s" release.NugetVersion)
+    Branches.pushBranch "" remote (Information.getBranchName "")
+
+    Branches.tag "" release.NugetVersion
+    Branches.pushTag "" remote release.NugetVersion
+
+    let client =
+        match Environment.GetEnvironmentVariable "OctokitToken" with
+        | null -> 
+            let user =
+                match getBuildParam "github-user" with
+                | s when not (String.IsNullOrWhiteSpace s) -> s
+                | _ -> getUserInput "Username: "
+            let pw =
+                match getBuildParam "github-pw" with
+                | s when not (String.IsNullOrWhiteSpace s) -> s
+                | _ -> getUserPassword "Password: "
+
+            createClient user pw
+        | token -> createClientWithToken token
+
+    // release on github
+    client
+    |> createDraft gitOwner gitName release.NugetVersion (release.SemVer.PreRelease <> None) release.Notes
+    |> releaseDraft
+    |> Async.RunSynchronously
+)
 
 
 // --------------------------------------------------------------------------------------
@@ -157,6 +200,7 @@ Target "NuGetPush" (fun _ -> Paket.Push (fun p -> { p with WorkingDir = artifact
 
 Target "Prepare" DoNothing
 Target "Default" DoNothing
+Target "Bundle" DoNothing
 Target "Release" DoNothing
 
 "Clean"
@@ -167,11 +211,13 @@ Target "Release" DoNothing
   ==> "RunTests"
   ==> "Default"
 
-"Build"
+"Default"
   ==> "NuGet"
-  ==> "Release"
+  ==> "Bundle"
 
-"NuGet" 
+"Bundle"
   ==> "NuGetPush"
+  ==> "ReleaseGithub"
+  ==> "Release"
 
 RunTargetOrDefault "Default"

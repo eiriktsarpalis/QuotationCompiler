@@ -577,3 +577,8 @@ RESTRICTION: == net461
 NUGET
   remote: https://api.nuget.org/v3/index.json
     FAKE (4.64.13)
+    Octokit (0.32)
+GITHUB
+  remote: fsharp/FAKE
+    modules/Octokit/Octokit.fsx (3101b20adca44d2ce08e7e3345ee7d45ac159fe4)
+      Octokit (>= 0.20)

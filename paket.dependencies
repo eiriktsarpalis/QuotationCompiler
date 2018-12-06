@@ -17,3 +17,5 @@ group Build
   framework: net461
 
   nuget FAKE ~> 4.0
+
+  github fsharp/FAKE modules/Octokit/Octokit.fsx
