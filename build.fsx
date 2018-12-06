@@ -64,14 +64,12 @@ Target "AssemblyInfo" (fun _ ->
     CreateFSharpAssemblyInfo "src/QuotationCompiler/AssemblyInfo.fs" attrs
 )
 
-
 Target "Build" (fun _ ->
-    // Build the rest of the project
-    { BaseDirectory = __SOURCE_DIRECTORY__
-      Includes = [ project + ".sln" ]
-      Excludes = [] } 
-    |> MSBuildRelease "" "Rebuild"
-    |> Log "AppBuild-Output: "
+    DotNetCli.Build(fun c -> 
+        { c with
+            Project = __SOURCE_DIRECTORY__
+            Configuration = configuration 
+        })
 )
 
 
