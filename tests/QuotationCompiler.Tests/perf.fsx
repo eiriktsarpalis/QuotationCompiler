@@ -1,4 +1,4 @@
-﻿#I "../../bin/"
+﻿#I "bin/Release/net461"
 #r "FSharp.Compiler.Service.dll"
 #r "QuotationCompiler.dll"
 #r "QuotationCompiler.Tests.dll"
@@ -21,7 +21,7 @@ let sqrt (x : float) =
 
 let sqrtExpr = Expr.GetReflectedDefinition <@ sqrt @>
 
-#time
+#time "on"
 
 // native
 // Execute time : Real: 00:00:00.053, CPU: 00:00:00.109, GC gen0: 0, gen1: 0, gen2: 0
