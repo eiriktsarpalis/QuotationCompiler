@@ -5,6 +5,12 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <!-- NuGet metadata -->
+    <Description>
+      A small library for compiling F# code quotations using the F# compiler service.
+      Its primary functionality is transforming quotation trees to untyped ASTs used by the F# compiler.
+      Since code is generated using the F# compiler proper, the end result is fully efficient and optimized.
+    </Description>
   </PropertyGroup>
   <PropertyGroup>
     <WarningLevel>5</WarningLevel>
@@ -12,15 +18,6 @@
     <OtherFlags>--warnon:1182</OtherFlags>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
-  </PropertyGroup>
-  <!-- NuGet metadata -->
-  <PropertyGroup>
-    <Summary>An F# quotation compilation library that uses FSharp.Compiler.Service.</Summary>
-    <Description>
-      A small library for compiling code quotations using the F# compiler service.
-      Its primary functionality is transforming quotation trees to untyped ASTs used by the F# compiler.
-      Since code is generated using the F# compiler proper, the end result is fully efficient and optimized.
-    </Description>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
