@@ -12,6 +12,7 @@ open Microsoft.FSharp.Reflection
 open QuotationCompiler
 
 /// Quotation Syntactic Equality comparer implementation
+/// NB does note account for α-equivalence
 type ExprEqualityComparer () =
     static let mutable exprConstInfoReader : MethodInfo option = None
     static let getExprConstInfo (o:obj) =

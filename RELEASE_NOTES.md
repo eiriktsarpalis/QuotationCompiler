@@ -1,5 +1,9 @@
+### 0.1
+* Target nestandard.
+* Update FSCS to latest version.
+
 ### 0.0.7-alpha
-* Update FSCS to latest version
+* Update FSCS to latest version.
 
 ### 0.0.6-alpha
 * Fix package issues.

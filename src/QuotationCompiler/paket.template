@@ -7,9 +7,9 @@ description
 authors
     Eirik Tsarpalis
 copyright
-    Copyright 2015
+    Copyright 2018
 summary
     An F# quotation compilation library that uses FSharp.Compiler.Service
-projecturl https://www.github.com/eiriktsarpalis/QuotationCompiler
+projecturl https://github.com/eiriktsarpalis/QuotationCompiler
 tags
     F#, fsharp, quotations, compiler, FSharp.Compiler.Service, metaprogramming

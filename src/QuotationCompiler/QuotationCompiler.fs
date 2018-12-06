@@ -8,7 +8,6 @@ open Microsoft.FSharp.Quotations
     
 open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.SourceCodeServices
-open Microsoft.FSharp.Compiler.SimpleSourceCodeServices
 
 open QuotationCompiler
 
@@ -60,8 +59,9 @@ type QuotationCompiler =
         Async.RunSynchronously(async {
             let fileName = "/mock.fs"
             let checker = FSharpChecker.Create()
-            let! options = checker.GetProjectOptionsFromScript(fileName, "")
-            let! parsed = checker.ParseFileInProject(fileName, source, options)
+            let! projOptions,_ = checker.GetProjectOptionsFromScript(fileName, "")
+            let options,_ = checker.GetParsingOptionsFromProjectOptions(projOptions)
+            let! parsed = checker.ParseFile(fileName, source, options)
             return parsed.ParseTree
         })
 #endif
@@ -78,7 +78,6 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Compiler
 open Microsoft.FSharp.Compiler.Ast
 open Microsoft.FSharp.Compiler.SourceCodeServices
-open Microsoft.FSharp.Compiler.SimpleSourceCodeServices
 
 open QuotationCompiler.Utilities
 
@@ -111,8 +110,8 @@ type QuotationCompiler private () =
         let dependencies = qast.Dependencies |> List.map (fun a -> a.Location)
         let location = Path.Combine(targetDirectory, assemblyName + ".dll")
         let pdbFile = Path.Combine(targetDirectory, assemblyName + ".pdb")
-        let sscs = new SimpleSourceCodeServices()
-        let errors, code = sscs.Compile([qast.Tree], assemblyName, location, dependencies, executable = false, pdbFile = pdbFile)
+        let sscs = FSharpChecker.Create()
+        let errors, code = sscs.Compile([qast.Tree], assemblyName, location, dependencies, executable = false, pdbFile = pdbFile) |> Async.RunSynchronously
         if code = 0 then location
         else
             raise <| new QuotationCompilerException(printErrors errors)
@@ -126,8 +125,8 @@ type QuotationCompiler private () =
         let assemblyName = match assemblyName with None -> sprintf "compiledQuotation_%s" (Guid.NewGuid().ToString("N")) | Some an -> an
         let qast = QuotationCompiler.ToParsedInput(expr)
         let dependencies = qast.Dependencies |> List.map (fun a -> a.Location)
-        let sscs = new SimpleSourceCodeServices()
-        match sscs.CompileToDynamicAssembly([qast.Tree], assemblyName, dependencies, None, debug = false) with
+        let sscs = FSharpChecker.Create()
+        match sscs.CompileToDynamicAssembly([qast.Tree], assemblyName, dependencies, None, debug = false) |> Async.RunSynchronously with
         | _, _, Some a -> a.GetType(qast.ModuleName).GetMethod(qast.FunctionName)
         | errors, _, _ -> raise <| new QuotationCompilerException (printErrors errors)
 
