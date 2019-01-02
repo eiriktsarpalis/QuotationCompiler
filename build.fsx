@@ -80,15 +80,12 @@ Target "AssemblyInfo" (fun _ ->
         | Shproj -> ())
 )
 
-Target "DotNet.Restore" (fun _ -> DotNetCli.Restore id)
-
 Target "Build" (fun _ ->
-    // Build the rest of the project
-    { BaseDirectory = __SOURCE_DIRECTORY__
-      Includes = [ project + ".sln" ]
-      Excludes = [] } 
-    |> MSBuild "" "Build" ["Configuration", configuration; "SourceLinkCreate", "true"]
-    |> Log "AppBuild-Output: "
+    DotNetCli.Build(fun p ->
+        { p with
+            Project = __SOURCE_DIRECTORY__
+            Configuration = configuration
+        })
 )
 
 
@@ -206,7 +203,6 @@ Target "Release" DoNothing
 "Clean"
   ==> "AssemblyInfo"
   ==> "Prepare"
-  ==> "DotNet.Restore"
   ==> "Build"
   ==> "RunTests"
   ==> "Default"
