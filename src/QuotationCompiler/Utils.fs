@@ -141,7 +141,7 @@ module internal Utils =
                 |> Array.toList
                 |> List.map(fun et -> false, sysTypeToSynType range et)
 
-            SynType.Tuple(telems, range)
+            SynType.Tuple(t.IsValueType, telems, range)
         elif FSharpType.IsFunction t then
             let dom, cod = FSharpType.GetFunctionElements t
             let synDom, synCod = sysTypeToSynType range dom, sysTypeToSynType range cod

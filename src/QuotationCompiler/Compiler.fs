@@ -145,7 +145,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             | [] -> synExn
             | [arg] -> SynExpr.App(ExprAtomicFlag.NonAtomic, false, synExn, arg, range)
             | args ->
-                let paren = SynExpr.Tuple(args, [], range)
+                let paren = SynExpr.Tuple(false, args, [], range)
                 SynExpr.App(ExprAtomicFlag.NonAtomic, false, synExn, paren, range)
 
         | Coerce(e, t) ->
@@ -181,13 +181,13 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                 match List.map2 (mkArgumentBinding range) paramInfo synArgs with
                 | [] -> SynExpr.Const(SynConst.Unit, range)
                 | [a] -> SynExpr.Paren(a, range, None, range)
-                | synParams -> SynExpr.Tuple(synParams, [], range)
+                | synParams -> SynExpr.Tuple(false, synParams, [], range)
 
             SynExpr.New(false, synType, synParam, range)
 
         | NewTuple(args) ->
             let synArgs = List.map exprToAst args
-            SynExpr.Tuple(synArgs, [], range)
+            SynExpr.Tuple(false, synArgs, [], range)
 
         | NewArray(t, elems) ->
             dependencies.Append t
@@ -216,7 +216,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                 | [] -> uciCtor
                 | [a] -> SynExpr.App(ExprAtomicFlag.Atomic, false, uciCtor, a, range)
                 | _ ->
-                    let synParam = SynExpr.Tuple(synArgs, [], range)
+                    let synParam = SynExpr.Tuple(false, synArgs, [], range)
                     SynExpr.App(ExprAtomicFlag.Atomic, false, uciCtor, synParam, range)
 
             SynExpr.Typed(ctorExpr, synTy, range)
@@ -249,7 +249,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                         SynPat.ArrayOrList(false, [], range)
                     else // Cons
                         let uciIdent = mkLongIdent range [mkIdent range "op_ColonColon"]
-                        let pats = SynPat.Tuple([SynPat.Wild range ; SynPat.Wild range], range)
+                        let pats = SynPat.Tuple(false, [SynPat.Wild range ; SynPat.Wild range], range)
                         SynPat.LongIdent(uciIdent, None, None, SynConstructorArgs.Pats [pats], None, range)
                 else
                     let uciIdent = mkUciIdent range uci
@@ -258,7 +258,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
 
             let matchClause = SynMatchClause.Clause(ctorPat, None, SynExpr.Const(SynConst.Bool true, range), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
             let notMatchClause = SynMatchClause.Clause(SynPat.Wild range, None, SynExpr.Const(SynConst.Bool false, range), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
-            SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [matchClause ; notMatchClause], false, range)
+            SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [matchClause ; notMatchClause], range)
 
         | Call(instance, methodInfo, args) ->
             dependencies.Append methodInfo
@@ -281,7 +281,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                     match grouping with
                     | 0 -> SynExpr.Const(SynConst.Unit, range)
                     | 1 -> SynExpr.Paren(synArgs.[i], range, None, range)
-                    | _ -> SynExpr.Paren(SynExpr.Tuple(Array.toList <| synArgs.[i .. i + grouping - 1], [], range), range, None, range)
+                    | _ -> SynExpr.Paren(SynExpr.Tuple(false, Array.toList <| synArgs.[i .. i + grouping - 1], [], range), range, None, range)
 
                 let funcExpr2 = SynExpr.App(ExprAtomicFlag.NonAtomic, false, funcExpr, args, range)
                 funcExpr2, i + grouping
@@ -316,7 +316,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                     for _i in idx + 1 .. arity - 1 -> SynPat.Wild range
                 ]
 
-            let synPat = SynPat.Tuple(patterns, range)
+            let synPat = SynPat.Tuple(false, patterns, range)
             let binding = mkBinding range false synPat synTuple
             SynExpr.LetOrUse(false, false, [binding], synIdent, range)
 
@@ -341,7 +341,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             let synIndexer = 
                 match List.map exprToAst indexers with
                 | [one] -> SynIndexerArg.One(one)
-                | synIdx -> SynIndexerArg.One(SynExpr.Tuple(synIdx, [range], range))
+                | synIdx -> SynIndexerArg.One(SynExpr.Tuple(false, synIdx, [range], range))
 
             match instance with
             | None -> 
@@ -368,7 +368,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             let synIndexer = 
                 match List.map exprToAst indexers with
                 | [one] -> SynIndexerArg.One(one)
-                | synIdx -> SynIndexerArg.One(SynExpr.Tuple(synIdx, [range], range))
+                | synIdx -> SynIndexerArg.One(SynExpr.Tuple(false, synIdx, [range], range))
 
             match instance with
             | None ->
@@ -442,7 +442,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
         SynModuleDecl.Let(false, [binding], range0)
 
     let moduleDeclsToParsedInput (decls : SynModuleDecl list) =
-        let modl = SynModuleOrNamespace([mkIdent defaultRange compiledModuleName], false, true, decls, PreXmlDoc.Empty,[], None, defaultRange)
+        let modl = SynModuleOrNamespace([mkIdent defaultRange compiledModuleName], false, SynModuleOrNamespaceKind.NamedModule, decls, PreXmlDoc.Empty,[], None, defaultRange)
         let file = ParsedImplFileInput("/QuotationCompiler.fs", false, QualifiedNameOfFile(mkIdent defaultRange compiledModuleName), [],[], [modl], ((* isLastCompiland *) true, (* isExe *) false))
         ParsedInput.ImplFile file
 
