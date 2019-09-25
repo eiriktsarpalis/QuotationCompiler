@@ -13,7 +13,7 @@ Package available on [NuGet](https://www.nuget.org/packages/QuotationCompiler/).
 
 open QuotationCompiler
 
-let hello : unit -> unit = QuotationCompiler.ToFunc <@ printfn "Hello, world!" @>
+let hello : unit -> unit = QuotationCompiler.ToFunc <@ printfn "Hello, world!" @> |> Async.RunSynchronously
 
 hello ()
 ```

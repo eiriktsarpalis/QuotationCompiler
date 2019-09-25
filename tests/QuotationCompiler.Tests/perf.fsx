@@ -3,7 +3,7 @@
 #r "QuotationCompiler.dll"
 #r "QuotationCompiler.Tests.dll"
 
-open Microsoft.FSharp.Quotations
+open FSharp.Quotations
 open QuotationCompiler.Tests.Perf
 
 // square root approximator

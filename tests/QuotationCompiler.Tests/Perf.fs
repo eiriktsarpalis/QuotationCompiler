@@ -2,9 +2,9 @@
 
 open System.Reflection
 
-open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Quotations.Patterns
-open Microsoft.FSharp.Quotations.ExprShape
+open FSharp.Quotations
+open FSharp.Quotations.Patterns
+open FSharp.Quotations.ExprShape
 
 open FSharp.Quotations.Evaluator
 open Swensen.Unquote
@@ -42,5 +42,5 @@ let unquote =
 let compiler =
     {
         new IQuotationEvaluator with
-            member __.Eval e = QuotationCompiler.Eval e
+            member __.Eval e = QuotationCompiler.Eval e |> Async.RunSynchronously
     }

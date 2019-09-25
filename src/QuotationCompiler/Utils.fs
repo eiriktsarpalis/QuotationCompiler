@@ -5,12 +5,12 @@ open System.Text.RegularExpressions
 open System.Reflection
 open System.Runtime.Serialization
 
-open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Quotations.Patterns
-open Microsoft.FSharp.Reflection
+open FSharp.Quotations
+open FSharp.Quotations.Patterns
+open FSharp.Reflection
 
-open Microsoft.FSharp.Compiler.Ast
-open Microsoft.FSharp.Compiler.Range
+open FSharp.Compiler.Ast
+open FSharp.Compiler.Range
     
 [<AutoOpen>]
 module internal Utils =
@@ -203,6 +203,10 @@ module internal Utils =
                 | Some i -> Some(instance, uci, i)
                 | None -> None
         | _ -> None
+
+    module Async =
+
+        let map f a = async { let! x = a in return f x }
 
     /// Type existential container
     [<AbstractClass>]

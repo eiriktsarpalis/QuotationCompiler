@@ -4,10 +4,11 @@ open System
 open System.Reflection
 open System.IO
 
-open Microsoft.FSharp.Quotations
+open FSharp.Quotations
     
-open Microsoft.FSharp.Compiler.Ast
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.Text
+open FSharp.Compiler.Ast
+open FSharp.Compiler.SourceCodeServices
 
 open QuotationCompiler
 
@@ -59,9 +60,9 @@ type QuotationCompiler =
         Async.RunSynchronously(async {
             let fileName = "/mock.fs"
             let checker = FSharpChecker.Create()
-            let! projOptions,_ = checker.GetProjectOptionsFromScript(fileName, "")
+            let! projOptions,_ = checker.GetProjectOptionsFromScript(fileName, SourceText.ofString "") 
             let options,_ = checker.GetParsingOptionsFromProjectOptions(projOptions)
-            let! parsed = checker.ParseFile(fileName, source, options)
+            let! parsed = checker.ParseFile(fileName, SourceText.ofString source, options)
             return parsed.ParseTree
         })
 #endif
@@ -72,19 +73,20 @@ open System
 open System.Reflection
 open System.Collections.Concurrent
 open System.IO
+open System.Threading.Tasks
 
-open Microsoft.FSharp.Quotations
+open FSharp.Quotations
 
-open Microsoft.FSharp.Compiler
-open Microsoft.FSharp.Compiler.Ast
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler
+open FSharp.Compiler.Ast
+open FSharp.Compiler.SourceCodeServices
 
 open QuotationCompiler.Utilities
 
 type QuotationCompiler private () =
 
     /// Memoized compiled expression trees
-    static let compiledExprs = new ConcurrentDictionary<Expr, obj>(new ExprEqualityComparer())
+    static let compiledExprs = new ConcurrentDictionary<Expr, Lazy<Task<obj>>>(new ExprEqualityComparer())
 
     static let printErrors (errors : FSharpErrorInfo []) =
         if Array.isEmpty errors then
@@ -102,7 +104,7 @@ type QuotationCompiler private () =
     /// <param name="compiledModuleName">Name of compiled module containing AST.</param>
     /// <param name="compiledFunctionName">Name of compiled function name containing AST.</param>
     static member ToAssembly(expr : Expr, ?targetDirectory : string, ?assemblyName : string, 
-                                            ?compiledModuleName : string, ?compiledFunctionName : string) : string =
+                                            ?compiledModuleName : string, ?compiledFunctionName : string) : Async<string> = async {
 
         let assemblyName = match assemblyName with None -> sprintf "compiledQuotation_%s" (Guid.NewGuid().ToString("N")) | Some an -> an
         let targetDirectory = match targetDirectory with None -> Path.GetTempPath() | Some p -> p
@@ -111,50 +113,60 @@ type QuotationCompiler private () =
         let location = Path.Combine(targetDirectory, assemblyName + ".dll")
         let pdbFile = Path.Combine(targetDirectory, assemblyName + ".pdb")
         let sscs = FSharpChecker.Create()
-        let errors, code = sscs.Compile([qast.Tree], assemblyName, location, dependencies, executable = false, pdbFile = pdbFile) |> Async.RunSynchronously
-        if code = 0 then location
-        else
-            raise <| new QuotationCompilerException(printErrors errors)
+        match! sscs.Compile([qast.Tree], assemblyName, location, dependencies, executable = false, pdbFile = pdbFile) with
+        | _, 0 -> return location
+        | errors, _ -> return raise <| new QuotationCompilerException(printErrors errors)
+    }
 
     /// <summary>
     ///     Compiles provided quotation tree to dynamic assembly.
     /// </summary>
     /// <param name="expr">Quotation tree to be compiled.</param>
     /// <param name="assemblyName">Assembly name. Defaults to auto generated name.</param>
-    static member ToDynamicAssembly(expr : Expr, ?assemblyName : string) : MethodInfo =
+    static member ToDynamicAssembly(expr : Expr, ?assemblyName : string) : Async<MethodInfo> = async {
         let assemblyName = match assemblyName with None -> sprintf "compiledQuotation_%s" (Guid.NewGuid().ToString("N")) | Some an -> an
         let qast = QuotationCompiler.ToParsedInput(expr)
         let dependencies = qast.Dependencies |> List.map (fun a -> a.Location)
         let sscs = FSharpChecker.Create()
-        match sscs.CompileToDynamicAssembly([qast.Tree], assemblyName, dependencies, None, debug = false) |> Async.RunSynchronously with
-        | _, _, Some a -> a.GetType(qast.ModuleName).GetMethod(qast.FunctionName)
-        | errors, _, _ -> raise <| new QuotationCompilerException (printErrors errors)
+        match! sscs.CompileToDynamicAssembly([qast.Tree], assemblyName, dependencies, None, debug = false) with
+        | _, _, Some a -> return a.GetType(qast.ModuleName).GetMethod(qast.FunctionName)
+        | errors, _, _ -> return raise <| new QuotationCompilerException (printErrors errors)
+    }
 
     /// <summary>
     ///     Compiles provided quotation tree to function.
     /// </summary>
     /// <param name="expr">Quotation tree to be compiled.</param>
     /// <param name="useCache">Keep compiled functions for syntactically equal quotations in cache. Defaults to true.</param>
-    static member ToFunc(expr : Expr<'T>, ?useCache:bool) : unit -> 'T =
+    static member ToFunc(expr : Expr<'T>, ?useCache:bool) : Async<unit -> 'T> = async {
         let useCache = defaultArg useCache true
-        let compile _ =
-            let methodInfo = QuotationCompiler.ToDynamicAssembly expr
+        let compile () = async {
+            let! methodInfo = QuotationCompiler.ToDynamicAssembly expr
             if typeof<'T> = typeof<unit> then
                 let action = wrapDelegate<Action>(methodInfo)
-                fun () -> action.Invoke() ; Unchecked.defaultof<'T>
+                return fun () -> action.Invoke() ; Unchecked.defaultof<'T>
             else
                 let func = wrapDelegate<Func<'T>>(methodInfo)
-                func.Invoke
+                return func.Invoke
+        }
 
         if useCache then
-            compiledExprs.GetOrAdd(expr, compile >> box) :?> unit -> 'T
+            let factory _ = lazy(
+                Async.StartAsTask(async {
+                    let! r = compile ()
+                    return r :> obj
+                }))
+
+            let! result = compiledExprs.GetOrAdd(expr, factory).Value |> Async.AwaitTask
+            return result :?> unit -> 'T
         else
-            compile ()
+            return! compile ()
+    }
 
     /// <summary>
     ///     Compiles provided quotation tree to value.
     /// </summary>
     /// <param name="expr">Quotation tree to be compiled.</param>
     /// <param name="useCache">Keep compiled functions for syntactically equal quotations in cache. Defaults to true.</param>
-    static member Eval(expr : Expr<'T>, ?useCache : bool) : 'T =
-        QuotationCompiler.ToFunc(expr, ?useCache = useCache) ()
+    static member Eval(expr : Expr<'T>, ?useCache : bool) : Async<'T> =
+        async { let! f = QuotationCompiler.ToFunc(expr, ?useCache = useCache) in return f () }

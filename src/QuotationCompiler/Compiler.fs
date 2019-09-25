@@ -3,15 +3,15 @@
 open System
 open System.Reflection
 
-open Microsoft.FSharp.Reflection
+open FSharp.Reflection
 
-open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Quotations.Patterns
-open Microsoft.FSharp.Quotations.DerivedPatterns
-open Microsoft.FSharp.Quotations.ExprShape
+open FSharp.Quotations
+open FSharp.Quotations.Patterns
+open FSharp.Quotations.DerivedPatterns
+open FSharp.Quotations.ExprShape
 
-open Microsoft.FSharp.Compiler.Ast
-open Microsoft.FSharp.Compiler.Range
+open FSharp.Compiler.Ast
+open FSharp.Compiler.Range
 
 open QuotationCompiler.Dependencies
 open QuotationCompiler.Utilities

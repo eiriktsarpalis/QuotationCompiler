@@ -4,10 +4,10 @@ open System
 open System.Reflection
 open System.Collections.Generic
 
-open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Quotations.Patterns
-open Microsoft.FSharp.Quotations.ExprShape
-open Microsoft.FSharp.Reflection
+open FSharp.Quotations
+open FSharp.Quotations.Patterns
+open FSharp.Quotations.ExprShape
+open FSharp.Reflection
 
 open QuotationCompiler
 

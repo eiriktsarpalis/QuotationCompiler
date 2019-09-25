@@ -2,8 +2,8 @@ source https://api.nuget.org/v3/index.json
 framework: net461, netstandard2.0, netcoreapp2.1
 redirects: on
 
-nuget FSharp.Compiler.Service >= 26 lowest_matching: true
-nuget FSharp.Core >= 4.3 lowest_matching: true
+nuget FSharp.Compiler.Service >= 31 lowest_matching: true
+nuget FSharp.Core >= 4.6.2 lowest_matching: true
 
 # testing
 nuget Unquote ~> 4.0

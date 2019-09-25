@@ -12,10 +12,10 @@ open System.Reflection
 open System.Runtime.Serialization
 open System.Runtime.Serialization.Formatters.Binary
 
-open Microsoft.FSharp.Quotations
+open FSharp.Quotations
 
-open Microsoft.FSharp.Compiler.Ast
-open Microsoft.FSharp.Compiler.Range
+open FSharp.Compiler.Ast
+open FSharp.Compiler.Range
 
 open QuotationCompiler.Utils
 

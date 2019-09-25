@@ -2,11 +2,11 @@
 
 open Xunit
 open Swensen.Unquote.Assertions
-open Microsoft.FSharp.Quotations
+open FSharp.Quotations
 open QuotationCompiler
 
-let compile (e : Expr<'T>) = QuotationCompiler.ToFunc e
-let compileRun (e : Expr<'T>) = QuotationCompiler.Eval e
+let compile (e : Expr<'T>) = QuotationCompiler.ToFunc e |> Async.RunSynchronously
+let compileRun (e : Expr<'T>) = QuotationCompiler.Eval e |> Async.RunSynchronously
 
 [<Fact>]
 let ``Constant leaf`` () =
