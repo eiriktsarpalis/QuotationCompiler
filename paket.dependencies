@@ -1,16 +1,21 @@
 source https://api.nuget.org/v3/index.json
-framework: net461, netstandard2.0, netcoreapp2.1
+framework: netstandard2.0
 storage: none
 
-nuget FSharp.Compiler.Service >= 33.0 lowest_matching: true
 nuget FSharp.Core >= 4.6.2 lowest_matching: true
+nuget FSharp.Compiler.Service >= 33.0 lowest_matching: true
 
-# testing
-nuget Unquote ~> 4.0
-nuget FSharp.Quotations.Evaluator ~> 1.1
-nuget xunit ~> 2.4
-nuget xunit.runner.console ~> 2.4
-nuget xunit.runner.visualstudio ~> 2.4 version_in_path: true
+group Test
+  source https://api.nuget.org/v3/index.json
+  framework: netcoreapp3.0, net472
+  storage: none
+
+  nuget FSharp.Core ~> 4.7
+  nuget Unquote ~> 4.0
+  nuget FSharp.Quotations.Evaluator ~> 1.1
+  nuget xunit ~> 2.4
+  nuget xunit.runner.console ~> 2.4
+  nuget xunit.runner.visualstudio ~> 2.4 version_in_path: true
 
 group Build
   source https://api.nuget.org/v3/index.json

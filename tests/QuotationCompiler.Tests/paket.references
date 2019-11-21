@@ -1,7 +1,7 @@
-FSharp.Core
-FSharp.Compiler.Service
-FSharp.Quotations.Evaluator
-xunit
-xunit.abstractions
-xunit.runner.visualstudio
-Unquote
+group Test
+  FSharp.Core
+  FSharp.Quotations.Evaluator
+  xunit
+  xunit.abstractions
+  xunit.runner.visualstudio
+  Unquote
