@@ -1,4 +1,4 @@
-﻿#I "bin/Debug/net461/"
+﻿#I "bin/Debug/netstandard2.0/publish"
 #r "QuotationCompiler.dll"
 
 open FSharp.Quotations
@@ -11,7 +11,7 @@ open FSharp.Quotations.ExprShape
 open QuotationCompiler
 
 // 1. hello world
-let hello = QuotationCompiler.ToFunc <@ printfn "Hello, World!" @>
+let hello = QuotationCompiler.ToFunc <@ printfn "Hello, World!" @> |> Async.RunSynchronously
 
 hello ()
 
@@ -25,5 +25,6 @@ let fib =
                     fib (n-2) + fib(n-1)
             fib
         @>
+    |> Async.RunSynchronously
 
 fib 10
