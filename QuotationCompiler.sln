@@ -2,30 +2,41 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29515.123
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{8E0FA4F9-0E46-4E2D-B0DC-E9EE874F7FB7}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QuotationCompiler", "src\QuotationCompiler\QuotationCompiler.fsproj", "{EC12EDBF-C546-401E-BB62-A186AAD04A80}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QuotationCompiler.Tests", "tests\QuotationCompiler.Tests\QuotationCompiler.Tests.fsproj", "{4E778741-1F86-49EA-9E4D-B8D161B6F9EA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".config", ".config", "{7D6D4E18-8D28-4BCE-841C-DF193473D110}"
 	ProjectSection(SolutionItems) = preProject
-		paket.dependencies = paket.dependencies
-		paket.lock = paket.lock
+		.config\dotnet-tools.json = .config\dotnet-tools.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{4E97A081-1602-44B0-8504-F9CD034E8FE3}"
+	ProjectSection(SolutionItems) = preProject
 		.paket\Paket.Restore.targets = .paket\Paket.Restore.targets
 	EndProjectSection
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QuotationCompiler", "src\QuotationCompiler\QuotationCompiler.fsproj", "{FE673FCD-C216-4742-8BA5-808571745433}"
-EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QuotationCompiler.Tests", "tests\QuotationCompiler.Tests\QuotationCompiler.Tests.fsproj", "{33EA3F7C-A6E0-407B-8FAE-1C1F5EA213E7}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "project", "project", "{6DF138D4-3902-4E9E-BDF8-6CFEB16BECA6}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CB71C6EC-BD9D-40E6-8C62-D181833DCBBD}"
 	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		.travis.yml = .travis.yml
 		appveyor.yml = appveyor.yml
 		build.cmd = build.cmd
 		build.fsx = build.fsx
 		build.sh = build.sh
-		.config\dotnet-tools.json = .config\dotnet-tools.json
 		License.md = License.md
+		paket.dependencies = paket.dependencies
+		paket.lock = paket.lock
 		README.md = README.md
 		RELEASE_NOTES.md = RELEASE_NOTES.md
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{71D736C0-857C-45E4-9211-3B43DCCFF55D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{88CDF8F7-00EB-49C9-AF8E-6F6494B3E238}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "QuotationCompiler.Benchmarks", "tests\QuotationCompiler.Benchmarks\QuotationCompiler.Benchmarks.fsproj", "{CB2E39E2-3DAC-4701-8A76-2EE4466F7300}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,19 +44,28 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FE673FCD-C216-4742-8BA5-808571745433}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FE673FCD-C216-4742-8BA5-808571745433}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FE673FCD-C216-4742-8BA5-808571745433}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FE673FCD-C216-4742-8BA5-808571745433}.Release|Any CPU.Build.0 = Release|Any CPU
-		{33EA3F7C-A6E0-407B-8FAE-1C1F5EA213E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{33EA3F7C-A6E0-407B-8FAE-1C1F5EA213E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{33EA3F7C-A6E0-407B-8FAE-1C1F5EA213E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{33EA3F7C-A6E0-407B-8FAE-1C1F5EA213E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC12EDBF-C546-401E-BB62-A186AAD04A80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC12EDBF-C546-401E-BB62-A186AAD04A80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC12EDBF-C546-401E-BB62-A186AAD04A80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC12EDBF-C546-401E-BB62-A186AAD04A80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E778741-1F86-49EA-9E4D-B8D161B6F9EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E778741-1F86-49EA-9E4D-B8D161B6F9EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E778741-1F86-49EA-9E4D-B8D161B6F9EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E778741-1F86-49EA-9E4D-B8D161B6F9EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CB2E39E2-3DAC-4701-8A76-2EE4466F7300}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CB2E39E2-3DAC-4701-8A76-2EE4466F7300}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CB2E39E2-3DAC-4701-8A76-2EE4466F7300}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CB2E39E2-3DAC-4701-8A76-2EE4466F7300}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EC12EDBF-C546-401E-BB62-A186AAD04A80} = {71D736C0-857C-45E4-9211-3B43DCCFF55D}
+		{4E778741-1F86-49EA-9E4D-B8D161B6F9EA} = {88CDF8F7-00EB-49C9-AF8E-6F6494B3E238}
+		{CB2E39E2-3DAC-4701-8A76-2EE4466F7300} = {88CDF8F7-00EB-49C9-AF8E-6F6494B3E238}
+	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {0420AC0F-4865-4799-BD68-51F18B13094C}
+		SolutionGuid = {B8953F22-664C-4671-A410-AA251E5B0172}
 	EndGlobalSection
 EndGlobal

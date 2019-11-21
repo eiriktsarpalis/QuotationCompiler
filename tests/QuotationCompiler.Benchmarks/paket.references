@@ -1,0 +1,5 @@
+﻿group Test
+  FSharp.Core
+  BenchmarkDotNet
+  Unquote
+  FSharp.Quotations.Evaluator
