@@ -16,6 +16,9 @@
     <Compile Include="Types.fs" />
     <Compile Include="Tests.fs" />
     <None Include="paket.references" />
+    <Content Include="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\QuotationCompiler\QuotationCompiler.fsproj" />

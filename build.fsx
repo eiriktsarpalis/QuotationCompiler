@@ -6,12 +6,10 @@
 #r "FakeLib.dll"
 
 open System
-open System.IO
 open Fake
 open Fake.Git
 open Fake.ReleaseNotesHelper
 open Fake.AssemblyInfoFile
-open Fake.Testing
 open Fake.DotNetCli
 
 // --------------------------------------------------------------------------------------
@@ -29,7 +27,6 @@ let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/" + gitOwner
 let configuration = environVarOrDefault "Configuration" "Release"
 let artifactsFolder = __SOURCE_DIRECTORY__ @@ "artifacts"
 let nugetProjects = !! "src/QuotationCompiler/*.??proj"
-let testProjects = !! "tests/**/*.??proj"
 
 //
 // --------------------------------------------------------------------------------------
@@ -85,6 +82,7 @@ Target "Build" (fun _ ->
         { p with
             Project = __SOURCE_DIRECTORY__
             Configuration = configuration
+            AdditionalArgs = [ yield sprintf "-p:Version=%O" release.NugetVersion ]
         })
 )
 
@@ -92,43 +90,11 @@ Target "Build" (fun _ ->
 // --------------------------------------------------------------------------------------
 // Run the unit tests
 
-let runTests config (proj : string) =
-    if EnvironmentHelper.isWindows then
-        DotNetCli.Test (fun c ->
-            { c with
-                Project = proj
-                Configuration = config })
-    else
-        // work around xunit/mono issue
-        let projDir = Path.GetDirectoryName proj
-        let projName = Path.GetFileNameWithoutExtension proj
-        let netcoreFrameworks, legacyFrameworks = 
-            !! (projDir @@ "bin" @@ config @@ "*/")
-            |> Seq.map Path.GetFileName
-            |> Seq.toArray
-            |> Array.partition 
-                (fun f -> 
-                    f.StartsWith "netcore" || 
-                    f.StartsWith "netstandard")
-
-        for framework in netcoreFrameworks do
-            DotNetCli.Test (fun c ->
-                { c with
-                    Project = proj
-                    Framework = framework
-                    Configuration = config })
-
-        for framework in legacyFrameworks do
-            let assembly = projDir @@ "bin" @@ config @@ framework @@ projName + ".dll"
-            !! assembly
-            |> xUnit2 (fun c ->
-                { c with
-                    Parallel = ParallelMode.Collections
-                    TimeOut = TimeSpan.FromMinutes 20. })
-
 Target "RunTests" (fun _ ->
-    for proj in testProjects do
-        runTests "Release" proj)
+    DotNetCli.Test (fun c ->
+        { c with
+            Project = __SOURCE_DIRECTORY__
+            Configuration = configuration }))
 
 // --------------------------------------------------------------------------------------
 // Build a NuGet package
