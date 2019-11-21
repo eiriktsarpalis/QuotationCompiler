@@ -1,4 +1,4 @@
-### 0.1.0
+### 0.1.0-alpha
 * Target nestandard.
 * Update FSCS to latest version.
 
