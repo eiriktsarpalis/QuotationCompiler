@@ -393,3 +393,21 @@ let ``Query expressions`` () =
             } |> Seq.toArray
         @>
     |> Seq.length =! 5
+
+
+[<Fact>]
+let ``Compile to assembly works`` () =
+    let expr =
+        <@ 
+            let rec fact n = 
+                if n = 0 then 1 
+                else n * fact(n-1) 
+            fact 5
+        @>
+
+    let assemblyFile = 
+        QuotationCompiler.ToAssembly(expr, compiledModuleName = "Module", compiledFunctionName = "fact")
+        |> Async.RunSynchronously
+
+    let assembly = System.Reflection.Assembly.LoadFrom(assemblyFile)
+    assembly.GetType("Module").GetMethod("fact").Invoke(null, [||]) :?> int =! 120
