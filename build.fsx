@@ -9,15 +9,11 @@ open System
 open Fake
 open Fake.Git
 open Fake.ReleaseNotesHelper
-open Fake.AssemblyInfoFile
 open Fake.DotNetCli
 
 // --------------------------------------------------------------------------------------
 // Information about the project to be used at NuGet and in AssemblyInfo files
 // --------------------------------------------------------------------------------------
-
-let project = "QuotationCompiler"
-let summary = "An F# quotation compilation library that uses FSharp.Compiler.Service"
 
 let gitHome = "https://github.com/eiriktsarpalis"
 let gitName = "QuotationCompiler"
@@ -26,7 +22,6 @@ let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/" + gitOwner
 
 let configuration = environVarOrDefault "Configuration" "Release"
 let artifactsFolder = __SOURCE_DIRECTORY__ @@ "artifacts"
-let nugetProjects = !! "src/QuotationCompiler/*.??proj"
 
 //
 // --------------------------------------------------------------------------------------
@@ -41,41 +36,12 @@ let release = parseReleaseNotes (IO.File.ReadAllLines "RELEASE_NOTES.md")
 // Clean build results
 
 Target "Clean" (fun _ ->
-    CleanDirs <| !! "./**/bin/"
-    CleanDir "./tools/output"
-    CleanDir "./temp"
+    CleanDir artifactsFolder
 )
 
 //
 // --------------------------------------------------------------------------------------
 // Build library & test project
-
-// Generate assembly info files with the right version & up-to-date information
-Target "AssemblyInfo" (fun _ ->
-    let getAssemblyInfoAttributes projectName =
-        [ Attribute.Title projectName
-          Attribute.Product project
-          Attribute.Description summary
-          Attribute.Version release.AssemblyVersion
-          Attribute.FileVersion release.AssemblyVersion ]
-
-    let getProjectDetails (projectPath : string) =
-        let projectName = System.IO.Path.GetFileNameWithoutExtension(projectPath)
-        ( projectPath,
-          projectName,
-          System.IO.Path.GetDirectoryName(projectPath),
-          (getAssemblyInfoAttributes projectName)
-        )
-
-    !! "src/**/*.??proj"
-    |> Seq.map getProjectDetails
-    |> Seq.iter (fun (projFileName, projectName, folderName, attributes) ->
-        match projFileName with
-        | Fsproj -> CreateFSharpAssemblyInfo (folderName </> "AssemblyInfo.fs") attributes
-        | Csproj -> CreateCSharpAssemblyInfo ((folderName </> "Properties") </> "AssemblyInfo.cs") attributes
-        | Vbproj -> CreateVisualBasicAssemblyInfo ((folderName </> "My Project") </> "AssemblyInfo.vb") attributes
-        | Shproj -> ())
-)
 
 Target "Build" (fun _ ->
     DotNetCli.Build(fun p ->
@@ -100,17 +66,16 @@ Target "RunTests" (fun _ ->
 // Build a NuGet package
 
 Target "NuGet" (fun _ ->
-    for proj in nugetProjects do
-        DotNetCli.Pack(fun p ->
-            { p with
-                Configuration = configuration
-                Project = proj
-                AdditionalArgs = 
-                    [ yield "--no-build" ; 
-                      yield "--no-dependencies" ; 
-                      yield sprintf "-p:Version=%O" release.NugetVersion ]
-                OutputPath = artifactsFolder
-            })
+    DotNetCli.Pack(fun p ->
+        { p with
+            Configuration = configuration
+            Project = __SOURCE_DIRECTORY__
+            AdditionalArgs = 
+                [ yield "--no-build" ; 
+                    yield "--no-dependencies" ; 
+                    yield sprintf "-p:Version=%O" release.NugetVersion ]
+            OutputPath = artifactsFolder
+        })
 )
 
 //--------------------------------------------
@@ -167,7 +132,6 @@ Target "Bundle" DoNothing
 Target "Release" DoNothing
 
 "Clean"
-  ==> "AssemblyInfo"
   ==> "Prepare"
   ==> "Build"
   ==> "RunTests"
