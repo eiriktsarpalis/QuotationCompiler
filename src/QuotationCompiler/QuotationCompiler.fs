@@ -85,6 +85,8 @@ open QuotationCompiler.Utilities
 
 type QuotationCompiler private () =
 
+    static let checker = lazy(FSharpChecker.Create())
+
     /// Memoized compiled expression trees
     static let compiledExprs = new ConcurrentDictionary<Expr, Lazy<Task<obj>>>(new ExprEqualityComparer())
 
@@ -112,8 +114,7 @@ type QuotationCompiler private () =
         let dependencies = qast.Dependencies |> List.map (fun a -> a.Location)
         let location = Path.Combine(targetDirectory, assemblyName + ".dll")
         let pdbFile = Path.Combine(targetDirectory, assemblyName + ".pdb")
-        let sscs = FSharpChecker.Create()
-        match! sscs.Compile([qast.Tree], assemblyName, location, dependencies, executable = false, pdbFile = pdbFile) with
+        match! checker.Value.Compile([qast.Tree], assemblyName, location, dependencies, executable = false, pdbFile = pdbFile) with
         | _, 0 -> return location
         | errors, _ -> return raise <| new QuotationCompilerException(printErrors errors)
     }
@@ -127,8 +128,7 @@ type QuotationCompiler private () =
         let assemblyName = match assemblyName with None -> sprintf "compiledQuotation_%s" (Guid.NewGuid().ToString("N")) | Some an -> an
         let qast = QuotationCompiler.ToParsedInput(expr)
         let dependencies = qast.Dependencies |> List.map (fun a -> a.Location)
-        let sscs = FSharpChecker.Create()
-        match! sscs.CompileToDynamicAssembly([qast.Tree], assemblyName, dependencies, None, debug = false) with
+        match! checker.Value.CompileToDynamicAssembly([qast.Tree], assemblyName, dependencies, None, debug = false) with
         | _, _, Some a -> return a.GetType(qast.ModuleName).GetMethod(qast.FunctionName)
         | errors, _, _ -> return raise <| new QuotationCompilerException (printErrors errors)
     }
