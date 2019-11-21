@@ -1,8 +1,8 @@
 source https://api.nuget.org/v3/index.json
 framework: net461, netstandard2.0, netcoreapp2.1
-redirects: on
+storage: none
 
-nuget FSharp.Compiler.Service >= 31 lowest_matching: true
+nuget FSharp.Compiler.Service >= 33.0 lowest_matching: true
 nuget FSharp.Core >= 4.6.2 lowest_matching: true
 
 # testing

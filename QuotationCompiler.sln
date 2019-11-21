@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.136
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29515.123
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{8E0FA4F9-0E46-4E2D-B0DC-E9EE874F7FB7}"
 	ProjectSection(SolutionItems) = preProject
@@ -21,6 +21,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "project", "project", "{6DF1
 		build.cmd = build.cmd
 		build.fsx = build.fsx
 		build.sh = build.sh
+		.config\dotnet-tools.json = .config\dotnet-tools.json
 		License.md = License.md
 		README.md = README.md
 		RELEASE_NOTES.md = RELEASE_NOTES.md
