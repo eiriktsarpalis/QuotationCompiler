@@ -354,7 +354,11 @@ let ``Constructor with optional params`` () =
 let ``Method with optional params`` () =
     compileRun <@ let c = ClassWithOptionalParams.Create(?age = Some 42) in c.Age @> =! 42
 
+#if NETCOREAPP
+[<Fact(Skip = "The type 'StreamingContext' is required here and is unavailable. You must add a reference to assembly System.Private.CoreLib")>]
+#else
 [<Fact>]
+#endif
 let ``Pickled values`` () =
     let value = [|1..100|] |> Array.map (fun i -> string i, i)
     compileRun <@ let x = value in x.[42] <- ("",0) ; value.[42] @> =! ("",0)
