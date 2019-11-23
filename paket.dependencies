@@ -12,7 +12,7 @@ group Test
 
   nuget FSharp.Core ~> 4.7
   nuget Unquote ~> 4.0
-  nuget FSharp.Quotations.Evaluator ~> 1.1
+  nuget FSharp.Quotations.Evaluator ~> 2.0
   nuget BenchmarkDotNet ~> 0.12
   nuget CommandLineParser ~> 2.4.0 # fix BDN binding redirect issue
   nuget xunit ~> 2.4
