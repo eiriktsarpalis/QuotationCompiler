@@ -22,8 +22,10 @@ type Expr with
         Expr.Cast<'T>(re)
 
 let compileAll (e : Expr<'T>) =
+    // force but do not throw any exceptions at this stage
+    let force (l : Lazy<_>) = (try l.Force() |> ignore with _ -> ()); l
     {|
-        powerpack = lazy(FSharp.Quotations.Evaluator.QuotationEvaluator.Evaluate e)
-        unquote = lazy(Swensen.Unquote.Operators.eval e)
-        qcompiler = lazy(QuotationCompiler.Eval e |> Async.RunSynchronously)
+        powerpack = lazy(FSharp.Quotations.Evaluator.QuotationEvaluator.Evaluate e) |> force
+        unquote = lazy(Swensen.Unquote.Operators.eval e) |> force
+        qcompiler = lazy(QuotationCompiler.Eval e |> Async.RunSynchronously) |> force
     |}

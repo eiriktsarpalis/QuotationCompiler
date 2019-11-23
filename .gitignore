@@ -38,3 +38,4 @@ temp/
 .vs/
 artifacts/
 BenchmarkDotNet.Artifacts/
+.ionide/

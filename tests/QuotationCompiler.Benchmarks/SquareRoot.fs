@@ -16,10 +16,11 @@ let sqrt (x : float) =
 
     approximate x
 
+let compiledMethods = Expr.GetReflectedDefinition <@ sqrt @> |> compileAll
+
 [<MemoryDiagnoser>]
 type SqrtBenchmark() =
     let inputValue = 1821.
-    let compiledMethods = Expr.GetReflectedDefinition <@ sqrt @> |> compileAll
     
     [<Benchmark(Description = "Managed", Baseline = true)>]
     member __.Managed() = sqrt inputValue |> ignore

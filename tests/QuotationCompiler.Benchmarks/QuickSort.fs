@@ -38,10 +38,11 @@ let quickSort (arr : int []) =
     loop(arr, 0, arr.Length - 1)
     arr
 
+let compiledMethods = Expr.GetReflectedDefinition <@ quickSort @> |> compileAll
+
 [<MemoryDiagnoser>]
 type QuickSortBenchmark() =
     let buffer = [|1 .. 100|]
-    let compiledMethods = Expr.GetReflectedDefinition <@ quickSort @> |> compileAll
     
     [<Benchmark(Description = "Managed", Baseline = true)>]
     member __.Managed() = quickSort buffer |> ignore
