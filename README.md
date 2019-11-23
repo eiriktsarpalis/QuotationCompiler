@@ -54,7 +54,6 @@ Intel Core i7-8665U CPU 1.90GHz (Coffee Lake), 1 CPU, 8 logical and 4 physical c
 
 A [quicksort implementation benchmark](https://github.com/eiriktsarpalis/QuotationCompiler/blob/114b29a1ae133c0754d93322136193a71e43699b/tests/QuotationCompiler.Benchmarks/QuickSort.fs):
 
-```
 |                      Method |          Mean |       Error |       StdDev |        Median |    Ratio |  RatioSD |     Gen 0 | Gen 1 | Gen 2 | Allocated |
 |---------------------------- |--------------:|------------:|-------------:|--------------:|---------:|---------:|----------:|------:|------:|----------:|
 |                     Managed |      3.862 us |   0.7029 us |     2.039 us |      2.700 us |     1.00 |     0.00 |         - |     - |     - |         - |
