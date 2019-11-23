@@ -21,7 +21,7 @@ hello ()
 ### Performance
 
 As can be expected, performance exceeds all other quotation evaluation libraries.
-Here is a [benchmark](https://github.com/eiriktsarpalis/QuotationsCompiler/blob/master/tests/QuotationCompiler.Tests/perf.fsx) for a tail recursive algorithm:
+Here is a [benchmark](https://github.com/eiriktsarpalis/QuotationCompiler/blob/114b29a1ae133c0754d93322136193a71e43699b/tests/QuotationCompiler.Benchmarks/SquareRoot.fs) for a tail recursive algorithm:
 ```fsharp
 [<ReflectedDefinition>]
 let sqrt (x : float) =
@@ -35,21 +35,32 @@ let sqrt (x : float) =
     approximate x
 ```
 
-| Library                                                                                 | Compilation time (cold) | Compilation time (warm) |
-|-----------------------------------------------------------------------------------------|-------------------------|-------------------------|
-| Native                                                                                  | N/A                     | N/A                     |
-| [Unquote](https://code.google.com/p/unquote/)                                           | 00:00:00.055            | 00:00:00.000            |
-| [FSharp.Quotations.Evaluator](http://fsprojects.github.io/FSharp.Quotations.Evaluator/) | 00:00:00.405            | 00:00:00.003            |
-| QuotationCompiler                                                                       | 00:00:05.068            | 00:00:00.161            |
+``` ini
 
-Executing the compiled functions 10^6 times produced the following results:
+BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18363
+Intel Core i7-8665U CPU 1.90GHz (Coffee Lake), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=3.1.100-preview3-014645
+  [Host]     : .NET Core 3.1.0 (CoreCLR 4.700.19.53102, CoreFX 4.700.19.55104), X64 RyuJIT DEBUG
+  DefaultJob : .NET Core 3.1.0 (CoreCLR 4.700.19.53102, CoreFX 4.700.19.55104), X64 RyuJIT
 
-| Library                                                                                 | Execution time | GC gen0,1,2 |
-|-----------------------------------------------------------------------------------------|----------------|-------------|
-| Native                                                                                  | 00:00:00.053   | 0,0,0       |
-| [Unquote](https://code.google.com/p/unquote/)                                           | 00:01:46.675   | 9598,12,1   |
-| [FSharp.Quotations.Evaluator](http://fsprojects.github.io/FSharp.Quotations.Evaluator/) | 00:00:00.087   | 15,0,0      |
-| QuotationCompiler                                                                       | 00:00:00.053   | 0,0,0       |
+
+```
+|                      Method |       Mean |      Error |    StdDev |     Median |  Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|---------------------------- |-----------:|-----------:|----------:|-----------:|-------:|--------:|------:|------:|------:|----------:|
+|                     Managed |   2.250 us |  0.5888 us |  1.718 us |   1.300 us |   1.00 |    0.00 |     - |     - |     - |         - |
+|                     Unquote | 291.363 us | 21.7297 us | 61.289 us | 285.150 us | 187.34 |  100.18 |     - |     - |     - |   74624 B |
+| FSharp.Quotations.Evaluator |   9.622 us |  1.9767 us |  5.671 us |   7.100 us |   6.00 |    4.87 |     - |     - |     - |      64 B |
+|           QuotationCompiler |   4.478 us |  1.5073 us |  4.325 us |   1.900 us |   2.46 |    2.78 |     - |     - |     - |         - |
+
+A [quicksort implementation benchmark](https://github.com/eiriktsarpalis/QuotationCompiler/blob/114b29a1ae133c0754d93322136193a71e43699b/tests/QuotationCompiler.Benchmarks/QuickSort.fs):
+
+```
+|                      Method |          Mean |       Error |       StdDev |        Median |    Ratio |  RatioSD |     Gen 0 | Gen 1 | Gen 2 | Allocated |
+|---------------------------- |--------------:|------------:|-------------:|--------------:|---------:|---------:|----------:|------:|------:|----------:|
+|                     Managed |      3.862 us |   0.7029 us |     2.039 us |      2.700 us |     1.00 |     0.00 |         - |     - |     - |         - |
+|                     Unquote | 10,539.083 us | 605.5924 us | 1,776.098 us | 10,532.100 us | 3,364.69 | 1,415.76 | 1000.0000 |     - |     - | 6318024 B |
+| FSharp.Quotations.Evaluator |    112.261 us |   5.4346 us |    15.680 us |    105.100 us |    35.54 |    14.36 |         - |     - |     - |    6680 B |
+|           QuotationCompiler |      7.259 us |   1.8754 us |     5.441 us |      4.200 us |     2.24 |     1.92 |         - |     - |     - |         - |
 
 ### Limitations
 

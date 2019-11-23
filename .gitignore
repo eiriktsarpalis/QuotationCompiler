@@ -32,8 +32,7 @@ paket-files/
 .fake
 docs/output/
 temp/
-/.vs/FsPickler/v15/sqlite3/storage.ide
-/.idea/.idea.FsPickler
+/.idea/
 
 .vs/
 artifacts/
