@@ -14,7 +14,7 @@ open System.Runtime.Serialization.Formatters.Binary
 
 open FSharp.Quotations
 
-open FSharp.Compiler.Ast
+open FSharp.Compiler.SyntaxTree
 open FSharp.Compiler.Range
 
 open QuotationCompiler.Utils

@@ -10,7 +10,8 @@ open FSharp.Quotations.Patterns
 open FSharp.Quotations.DerivedPatterns
 open FSharp.Quotations.ExprShape
 
-open FSharp.Compiler.Ast
+open FSharp.Compiler.XmlDoc
+open FSharp.Compiler.SyntaxTree
 open FSharp.Compiler.Range
 
 open QuotationCompiler.Dependencies
@@ -77,7 +78,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             let untypedPat = SynSimplePats.SimplePats([spat], range)
             let typedPat = SynSimplePats.Typed(untypedPat, vType, range)
             let bodyAst = exprToAst body
-            SynExpr.Lambda(false, false, typedPat, bodyAst, range)
+            SynExpr.Lambda(false, false, typedPat, bodyAst, None, range)
 
         | LetRecursive(bindings, body) ->
             let mkBinding (v : Var, bind : Expr) =
@@ -100,7 +101,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             let synBind = exprToAst bind
             let synBody = exprToAst body
             let synValData = SynValData.SynValData(None, SynValInfo([[]], SynArgInfo([], false, None)), None)
-            let synBinding = SynBinding.Binding(None, SynBindingKind.NormalBinding, false, v.IsMutable, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range, SequencePointInfoForBinding.SequencePointAtBinding range)
+            let synBinding = SynBinding.Binding(None, SynBindingKind.NormalBinding, false, v.IsMutable, [], PreXmlDoc.Empty, synValData, typedPat, None, synBind, range, DebugPointForBinding.DebugPointAtBinding range)
             SynExpr.LetOrUse(false, false, [synBinding], synBody, range)
 
         | Application(left, right) ->
@@ -111,30 +112,30 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
         | Sequential(left, right) ->
             let synLeft = exprToAst left
             let synRight = exprToAst right
-            SynExpr.Sequential(SequencePointInfoForSeq.SequencePointsAtSeq, true, synLeft, synRight, range)
+            SynExpr.Sequential(DebugPointAtSequential.Both, true, synLeft, synRight, range)
 
         | TryWith(body, _, _, cv, cb) ->
             let synBody = exprToAst body
             let synPat = mkVarPat range cv
             let synCatch = exprToAst cb
-            let synClause = SynMatchClause.Clause(synPat, None, synCatch, range, SequencePointInfoForTarget.SequencePointAtTarget)
-            SynExpr.TryWith(synBody, range, [synClause], range, range, SequencePointInfoForTry.SequencePointAtTry range, SequencePointInfoForWith.SequencePointAtWith range)
+            let synClause = SynMatchClause.Clause(synPat, None, synCatch, range, DebugPointForTarget.Yes)
+            SynExpr.TryWith(synBody, range, [synClause], range, range, DebugPointAtTry.Yes range, DebugPointAtWith.Yes range)
 
         | TryFinally(body, finalizer) ->
             let synBody = exprToAst body
             let synFinalizer = exprToAst finalizer
-            SynExpr.TryFinally(synBody, synFinalizer, range, SequencePointInfoForTry.SequencePointAtTry range, SequencePointInfoForFinally.SequencePointAtFinally range)
+            SynExpr.TryFinally(synBody, synFinalizer, range, DebugPointAtTry.Yes range, DebugPointAtFinally.Yes range)
 
         | IfThenElse(cond, a, b) ->
             let synCond = exprToAst cond
             let synA = exprToAst a
             let synB = exprToAst b
-            SynExpr.IfThenElse(synCond, synA, Some synB, SequencePointInfoForBinding.SequencePointAtBinding range, false, range, range)
+            SynExpr.IfThenElse(synCond, synA, Some synB, DebugPointForBinding.DebugPointAtBinding range, false, range, range)
 
         | WhileLoop(cond, body) ->
             let synCond = exprToAst cond
             let synBody = exprToAst body
-            SynExpr.While(SequencePointAtWhileLoop range, synCond, synBody, range)
+            SynExpr.While(DebugPointAtWhile.Yes range, synCond, synBody, range)
 
         // Adapt F# exception constructors to F# idiomatic syntax
         | Coerce(NewObject(ctor, args), t) when t = typeof<exn> && FSharpType.IsExceptionRepresentation ctor.DeclaringType ->
@@ -233,7 +234,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                     let spat = SynSimplePat.Id(mkIdent range v.Name, None, false ,false ,false, range)
                     let untypedPat = SynSimplePats.SimplePats([spat], range)
                     let typedPat = SynSimplePats.Typed(untypedPat, vType, range)
-                    let synLambda = SynExpr.Lambda(false, false, typedPat, acc, range)
+                    let synLambda = SynExpr.Lambda(false, false, typedPat, acc, None, range)
                     mkLambda synLambda tail
 
             let synAbs = mkLambda synBody (List.rev vars)
@@ -250,15 +251,15 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
                     else // Cons
                         let uciIdent = mkLongIdent range [mkIdent range "op_ColonColon"]
                         let pats = SynPat.Tuple(false, [SynPat.Wild range ; SynPat.Wild range], range)
-                        SynPat.LongIdent(uciIdent, None, None, SynConstructorArgs.Pats [pats], None, range)
+                        SynPat.LongIdent(uciIdent, None, None, SynArgPats.Pats [pats], None, range)
                 else
                     let uciIdent = mkUciIdent range uci
                     let ctorArgs = if uci.GetFields().Length = 0 then [] else [SynPat.Wild range]
-                    SynPat.LongIdent(uciIdent, None, None, SynConstructorArgs.Pats ctorArgs, None, range)
+                    SynPat.LongIdent(uciIdent, None, None, SynArgPats.Pats ctorArgs, None, range)
 
-            let matchClause = SynMatchClause.Clause(ctorPat, None, SynExpr.Const(SynConst.Bool true, range), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
-            let notMatchClause = SynMatchClause.Clause(SynPat.Wild range, None, SynExpr.Const(SynConst.Bool false, range), range, SequencePointInfoForTarget.SuppressSequencePointAtTarget)
-            SynExpr.Match(SequencePointInfoForBinding.SequencePointAtBinding range, synExpr, [matchClause ; notMatchClause], range)
+            let matchClause = SynMatchClause.Clause(ctorPat, None, SynExpr.Const(SynConst.Bool true, range), range, DebugPointForTarget.No)
+            let notMatchClause = SynMatchClause.Clause(SynPat.Wild range, None, SynExpr.Const(SynConst.Bool false, range), range, DebugPointForTarget.No)
+            SynExpr.Match(DebugPointForBinding.DebugPointAtBinding range, synExpr, [matchClause ; notMatchClause], range)
 
         | Call(instance, methodInfo, args) ->
             dependencies.Append methodInfo
@@ -340,8 +341,8 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             dependencies.Append propertyInfo
             let synIndexer = 
                 match List.map exprToAst indexers with
-                | [one] -> SynIndexerArg.One(one)
-                | synIdx -> SynIndexerArg.One(SynExpr.Tuple(false, synIdx, [range], range))
+                | [one] -> SynIndexerArg.One(one, false, range)
+                | synIdx -> SynIndexerArg.One(SynExpr.Tuple(false, synIdx, [range], range), false, range)
 
             match instance with
             | None -> 
@@ -367,8 +368,8 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             let synValue = exprToAst value
             let synIndexer = 
                 match List.map exprToAst indexers with
-                | [one] -> SynIndexerArg.One(one)
-                | synIdx -> SynIndexerArg.One(SynExpr.Tuple(false, synIdx, [range], range))
+                | [one] -> SynIndexerArg.One(one, false, range)
+                | synIdx -> SynIndexerArg.One(SynExpr.Tuple(false, synIdx, [range], range), false, range)
 
             match instance with
             | None ->
@@ -409,7 +410,7 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
             let synStartExpr = exprToAst startExpr
             let synEndExpr = exprToAst endExpr
             let synBody = exprToAst body
-            SynExpr.For(SequencePointAtForLoop range, varIdent, synStartExpr, true, synEndExpr, synBody, range)
+            SynExpr.For(DebugPointAtFor.Yes range, varIdent, synStartExpr, true, synEndExpr, synBody, range)
 
         | QuoteTyped q -> 
             let synQuote = exprToAst q
@@ -428,10 +429,10 @@ let convertExprToAst (serializer : IExprSerializer) (compiledModuleName : string
         | _ -> notImpl expr
 
     let synExprToLetBinding (expr : SynExpr) =
-        let synConsArgs = SynConstructorArgs.Pats [ SynPat.Paren(SynPat.Const(SynConst.Unit, defaultRange), defaultRange)]
+        let synConsArgs = SynArgPats.Pats [ SynPat.Paren(SynPat.Const(SynConst.Unit, defaultRange), defaultRange)]
         let synPat = SynPat.LongIdent(mkLongIdent defaultRange [mkIdent defaultRange compiledFunctionName], None, None, synConsArgs, None, defaultRange)
         // create a `let func () = () ; expr` binding to force return type compatible with quotation type.
-        let seqExpr = SynExpr.Sequential(SequencePointsAtSeq, true, SynExpr.Const(SynConst.Unit, defaultRange), expr, defaultRange)
+        let seqExpr = SynExpr.Sequential(DebugPointAtSequential.ExprOnly, true, SynExpr.Const(SynConst.Unit, defaultRange), expr, defaultRange)
         let binding = mkBinding defaultRange false synPat seqExpr
         SynModuleDecl.Let(false, [binding], defaultRange)
 

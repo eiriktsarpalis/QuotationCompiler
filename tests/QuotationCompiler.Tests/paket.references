@@ -4,4 +4,5 @@ group Test
   xunit
   xunit.abstractions
   xunit.runner.visualstudio
+  Microsoft.NET.Test.Sdk
   Unquote

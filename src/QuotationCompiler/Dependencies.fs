@@ -9,7 +9,7 @@ type DependencyContainer () =
 
     static let ignoredAssemblies =
         [| typeof<int> ; typeof<int option> |]
-        |> Seq.map (fun t -> t.Assembly)
+        |> Seq.map (fun (t:Type) -> t.Assembly)
         |> HashSet
 
     let dependencies = new HashSet<Assembly> ()

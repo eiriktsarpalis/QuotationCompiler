@@ -9,7 +9,8 @@ open FSharp.Quotations
 open FSharp.Quotations.Patterns
 open FSharp.Reflection
 
-open FSharp.Compiler.Ast
+open FSharp.Compiler.XmlDoc
+open FSharp.Compiler.SyntaxTree
 open FSharp.Compiler.Range
     
 [<AutoOpen>]
@@ -82,11 +83,11 @@ module internal Utils =
     let inline mkLongIdent range (li : Ident list) = LongIdentWithDots(li, [range])
     let inline mkVarPat range (v : Quotations.Var) = 
         let lident = mkLongIdent range [mkIdent range v.Name]
-        SynPat.LongIdent(lident, None, None, SynConstructorArgs.Pats [], None, range)
+        SynPat.LongIdent(lident, None, None, SynArgPats.Pats [], None, range)
 
     let inline mkBinding range isTopLevelValue pat expr =
         let synValData = SynValData.SynValData(None, SynValInfo((if isTopLevelValue then [] else [[]]), SynArgInfo([], false, None)), None)
-        SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, pat, None, expr, range0, SequencePointInfoForBinding.SequencePointAtBinding range)
+        SynBinding.Binding(None, SynBindingKind.NormalBinding, false, false, [], PreXmlDoc.Empty, synValData, pat, None, expr, range0, DebugPointForBinding.DebugPointAtBinding range)
 
     let mkUniqueIdentifier range =
         let suffix = Guid.NewGuid().ToString("N")
